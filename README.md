@@ -1,4 +1,4 @@
-# Instalación del Plugin "nick" para Odoo
+# Instalación del Plugin `ISI_INVOICE for Odoo` para Odoo
 
 ## Paso 1: Descarga y Preparación
 

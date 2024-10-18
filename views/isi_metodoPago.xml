@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+
+Este archivo XML define una personalización de vista para el módulo de Punto de Venta (POS) de Odoo. 
+Hereda la vista del formulario de método de pago POS existente y agrega un nuevo campo llamado 
+'metodo_pago_sin' después del campo 'journal_id'. El nuevo campo es un widget de selección. 
+con opciones para deshabilitar la creación y apertura de nuevos registros. Está destinado a 
+asociar un método de pago SIN al sistema POS.
+
+Elementos:
+- <registro>: Define un nuevo registro en el modelo 'ir.ui.view'.
+    - id: Identificador único para la personalización de la vista.
+    - modelo: especifica el modelo al que se aplica esta personalización de vista.
+    -hered_id: hace referencia a la vista existente que se heredará y personalizará.
+    - arch: Contiene la arquitectura XML para la personalización de la vista.
+        - <xpath>: especifica la ubicación dentro de la vista heredada donde se insertará el nuevo campo.
+            - expr: expresión XPath para localizar el campo 'journal_id'.
+            - posición: especifica que el nuevo campo debe agregarse después del campo 'journal_id'.
+            - <campo>: Define el nuevo campo 'metodo_pago_sin' con opciones de widget específicas y texto de ayuda.
+-->
+    <record id="pos_payment_method_view_form_inherit_sin" model="ir.ui.view">
+        <field name="name">pos.payment.method.form.inherit.sin</field>
+        <field name="model">pos.payment.method</field>
+        <field name="inherit_id" ref="point_of_sale.pos_payment_method_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='journal_id']" position="after">
+                <field name="metodo_pago_sin" widget="selection" options="{'no_create': True, 'no_open': True}" help="Asociar un método de pago de SIN a POS"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

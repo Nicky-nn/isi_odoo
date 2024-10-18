@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!--
+
+    Este archivo XML define las vistas y acciones para la configuración de ISI-PASS en Odoo.
+
+    1. Vista de formulario de usuario heredado:
+        - ID: view_users_form_inherit_isi_pass
+        - Modelo: res.usuarios
+        - Hereda: base.view_users_form
+        - Agrega una nueva página "Configuración Token IsiPass" en el formulario de usuario con una vista de árbol de isi_pass_config_id.
+
+    2. Vista del formulario de configuración de ISI-PASS:
+        - ID: isi_pass_config_form_view
+        - Modelo: isi.pass.config
+        - Define una vista de formulario para la configuración de ISI-PASS con campos para credenciales de usuario, configuraciones de entorno y campos de solo lectura para token e información de usuario.
+
+    3. Acción de configuración de ISI-PASS:
+        - ID: action_isi_pass_config
+        - Modelo: isi.pass.config
+        - Abre la Configuración ISI-PASS en modos de vista de árbol y formulario.
+
+    4. Menú ISI-PASS:
+        - Menú raíz: ISI-PASS
+        - ID: menu_isi_pass_root
+        - Icono: isi_pass,static/description/icon.png
+        - Submenú: Configuración ISI-PASS
+        - ID: menu_isi_pass_config
+        - Padre: menu_isi_pass_root
+        - Acción: action_isi_pass_config
+    -->
+    <!-- Vista heredada para usuarios -->
+    <record id="view_users_form_inherit_isi_pass" model="ir.ui.view">
+        <field name="name">res.users.form.inherit.isi.pass</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <notebook position="inside">
+                <page string="Configuración Token IsiPass">
+                    <field name="isi_pass_config_id" context="{'default_user_id': active_id}">
+                        <tree>
+                            <field name="name"/>
+                            <field name="environment"/>
+                            <field name="api_url"/>
+                            <field name="shop_url"/>
+                            <field name="email"/>
+                        </tree>
+                    </field>
+                </page>
+            </notebook>
+        </field>
+    </record>
+
+    <!-- Vista de formulario para la configuración ISI-PASS -->
+    <record id="isi_pass_config_form_view" model="ir.ui.view">
+        <field name="name">ISI-PASS Config Form</field>
+        <field name="model">isi.pass.config</field>
+        <field name="arch" type="xml">
+            <form string="ISI-PASS Configuration">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1>
+                            <field name="name" placeholder="Ej: Configuración ISI-PASS para Ventas"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="user_id" invisible="1"/>
+                            <field name="environment" widget="radio"/>
+                            <field name="api_url"/>
+                            <!-- Ahora editable -->
+                            <field name="shop_url"/>
+                            <field name="email"/>
+                            <field name="password" password="True"/>
+                            <button name="login" string="Iniciar Sesión" type="object" class="oe_highlight"/>
+                        </group>
+                        <group>
+                            <field name="token_display" readonly="1"/>
+                            <field name="refresh_token_display" readonly="1"/>
+                            <field name="nombres" readonly="1"/>
+                            <field name="apellidos" readonly="1"/>
+                            <field name="avatar" readonly="1"/>
+                            <field name="razon_social" readonly="1"/>
+                            <field name="codigo_modalidad" readonly="1"/>
+                            <field name="codigo_ambiente" readonly="1"/>
+                            <field name="fecha_validez_token" readonly="1"/>
+                            <field name="tienda" widget="badge" readonly="1"/>
+                            <field name="email_empresa" readonly="1"/>
+                            <field name="email_fake" readonly="1"/>
+                            <field name="sucursal_codigo" widget="badge" readonly="1"/>
+                            <field name="sucursal_direccion" readonly="1"/>
+                            <field name="sucursal_telefono" readonly="1"/>
+                            <field name="departamento_codigo" readonly="1"/>
+                            <field name="departamento_codigo_pais" readonly="1"/>
+                            <field name="departamento_sigla" readonly="1"/>
+                            <field name="departamento_nombre" readonly="1"/>
+                            <field name="punto_venta_codigo" readonly="1"/>
+                            <field name="punto_venta_nombre" readonly="1"/>
+                            <field name="punto_venta_descripcion" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Acción para abrir la configuración ISI-PASS -->
+    <record id="action_isi_pass_config" model="ir.actions.act_window">
+        <field name="name">Configuración ISI-PASS</field>
+        <field name="res_model">isi.pass.config</field>
+        <field name="view_mode">tree,form</field>
+        <field name="target">current</field>
+    </record>
+
+    <!-- Menú principal de ISI-PASS -->
+    <menuitem id="menu_isi_pass_root" name="ISI-PASS" web_icon="isi_pass,static/description/icon.png"/>
+
+    <!-- Submenú para la configuración de ISI-PASS -->
+    <menuitem id="menu_isi_pass_config" name="Configuración ISI-PASS" parent="menu_isi_pass_root" action="action_isi_pass_config"/>
+</odoo>

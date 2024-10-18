@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- 
+
+        Este archivo XML define las vistas y acciones para las configuraciones ISI-PASS en Odoo.
+
+        1. Vista de árbol para configuraciones ISI-PASS:
+            - ID de registro: isi_pass_config_tree_view
+            - Modelo: isi.pass.config
+            - Campos mostrados: nombre, correo electrónico, shop_url, token_display, entorno
+
+        2. Vista de formulario para la configuración de ISI-PASS:
+            - ID de registro: isi_pass_config_form_view
+            - Modelo: isi.pass.config
+            - Campos mostrados:
+            - Editable: nombre, entorno (widget de radio), shop_url, correo electrónico, contraseña (enmascarada), botón de inicio de sesión
+            - Sólo lectura: api_url, token_display, refresco_token_display, nombres, apellidos, razón_social, fecha_validez_token
+
+        3. Acción para configuraciones ISI-PASS:
+            - ID de registro: action_isi_pass_config
+            - Modelo: isi.pass.config
+            - Modos de visualización: árbol, formulario
+            - Objetivo: actual
+
+        4. Elementos del menú:
+            - Menú raíz: ISI-PASS (menu_isi_pass_root)
+            - Submenú: Configuraciones ISI-PASS (menu_isi_pass_config) en el menú raíz de ISI-PASS, vinculado a action_isi_pass_config
+        -->
+    <!-- Tree View for ISI-PASS Configurations -->
+    <!-- listado -->
+    <record id="isi_pass_config_tree_view" model="ir.ui.view">
+        <field name="name">ISI-PASS Config Tree</field>
+        <field name="model">isi.pass.config</field>
+        <field name="arch" type="xml">
+            <tree string="ISI-PASS Configurations">
+                <field name="name"/>
+                <field name="email"/>
+                <field name="shop_url"/>
+                <field name="token_display"/>
+                <field name="environment"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View for ISI-PASS Configuration -->
+    <record id="isi_pass_config_form_view" model="ir.ui.view">
+        <field name="name">ISI-PASS Config Form</field>
+        <field name="model">isi.pass.config</field>
+        <field name="arch" type="xml">
+            <form string="ISI-PASS Configuration">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Nombre de la Configuración" />
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="environment" widget="radio"/>
+                            <field name="api_url" readonly="1"/>
+                            <field name="shop_url"/>
+                            <field name="email"/>
+                            <field name="password" password="True"/>
+                            <button name="login" string="Iniciar Sesión" type="object" class="oe_highlight"/>
+                        </group>
+                        <group>
+                            <field name="token_display" readonly="1"/>
+                            <field name="refresh_token_display" readonly="1"/>
+                            <field name="nombres" readonly="1"/>
+                            <field name="apellidos" readonly="1"/>
+                            <field name="razon_social" readonly="1"/>
+                            <field name="fecha_validez_token" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action for ISI-PASS Configurations -->
+    <record id="action_isi_pass_config" model="ir.actions.act_window">
+        <field name="name">Configuraciones ISI-PASS</field>
+        <field name="res_model">isi.pass.config</field>
+        <field name="view_mode">tree,form</field>
+        <field name="target">current</field>
+    </record>
+
+    <!-- Menu Items -->
+    <menuitem id="menu_isi_pass_root" name="ISI-PASS" web_icon="isi_pass,static/description/icon.png"/>
+    <menuitem id="menu_isi_pass_config" name="Configuraciones ISI-PASS" parent="menu_isi_pass_root" action="action_isi_pass_config"/>
+</odoo>

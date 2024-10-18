@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+
+    Este archivo XML amplía la vista de formulario del modelo 'res.partner' en Odoo.
+    Hereda de la vista del formulario de socio base y agrega tres campos nuevos. 
+    (razon_social, complemento, codigo_tipo_documento_identidad) después del campo 'iva'.
+    Cada nuevo campo tiene un estilo con un color de fondo claro, margen en la parte inferior, 
+    y esquinas redondeadas para una mejor apariencia visual.
+-->
+    <record id="view_partner_form_extended" model="ir.ui.view">
+        <field name="name">res.partner.form.extended</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='vat']" position="after">
+                <field name="razon_social" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" />
+                <field name="complemento" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" />
+                <field name="codigo_tipo_documento_identidad" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" />
+            </xpath>
+        </field>
+    </record>
+</odoo>

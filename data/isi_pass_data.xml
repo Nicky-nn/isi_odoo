@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- <data noupdate="1">
+        <record id="isi_pass_config_settings" model="res.config.settings">
+            <field name="module_isi_pass" eval="True"/>
+        </record>
+    </data> -->
+</odoo>

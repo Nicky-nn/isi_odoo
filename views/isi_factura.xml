@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--
+
+Este archivo XML personaliza la vista del formulario de movimiento de cuenta de Odoo agregando campos y secciones adicionales para el procesamiento de facturas. Las personalizaciones incluyen:
+
+1. Agregar una sección antes del grupo de formulario principal para mostrar información de "Punto de Venta" y "Sucursal".
+2. Agregar campos después del campo "partner_id" para capturar detalles adicionales del cliente, como tipo de documento, motivo social, teléfono y correo electrónico.
+3. Agregar un nuevo grupo antes del cuaderno para capturar los detalles de facturación de ISIPASS, incluido el método de pago, el número de tarjeta y los campos monetarios personalizados.
+4. Modificar la etiqueta del campo "price_subtotal" en las partidas de la factura a "Subtotal".
+5. Agregar un mensaje de confirmación al botón "action_post".
+6. Agregar una nueva página en el cuaderno para mostrar información relacionada con la API y un botón para actualizar el estado de la factura.
+7. Agregar una rueda giratoria de carga para indicar el procesamiento.
+8. Agregar botones para imprimir el rollo y enviar la factura vía WhatsApp después del botón "action_post" en el encabezado.
+
+Estas personalizaciones mejoran el formulario de factura al proporcionar información adicional y funcionalidad específica a los requisitos del usuario.
+-->
+        <record id="view_move_form_inherited" model="ir.ui.view">
+            <field name="name">account.move.form.inherited</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_move_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//sheet/group" position="before">
+                    <div class="oe_title">
+                        <h3 style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px; padding: 10px;">
+                            <span class="oe_inline">Punto de Venta : </span>
+                            <field name="punto_venta_nombre" readonly="1" class="oe_inline"/>
+                            -
+                            <field name="punto_venta_codigo" readonly="1" class="oe_inline"/>
+                        </h3>
+                        <h4 style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px; padding: 10px;">
+                            <span class="oe_inline">Sucursal : </span>
+                            <field name="sucursal_direccion" readonly="1" class="oe_inline"/>
+                            -
+                            <field name="sucursal_codigo" readonly="1" class="oe_inline"/>
+                            <br/>
+                            <!-- <button name="action_change_pv_sucursal" type="object" string="Cambiar Sucursal / Punto de Venta" class="oe_highlight"/> -->
+                        </h4>
+                    </div>
+                </xpath>
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <group>
+                        <field name="codigo_tipo_documento_identidad" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" help="Tipo de Documento de Identidad del Cliente" readonly="1"/>
+                        <field name="razon_social" required="1" help="Nombre o Razón Social del Cliente" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;"/>
+                        <field name="phone" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" help="Teléfono del Cliente. Con ello se enviará la factura por medio de WhatsApp" />
+                        <field name="email" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" help="Correo Electrónico del Cliente. Con ello se enviará la factura por medio de gestor de correos" />
+                    </group>
+                </xpath>
+
+                <xpath expr="//notebook" position="before">
+                    <group string="Datos Facturación ISIPASS">
+                        <group>
+                            <field name="extra_details" widget="html" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" />
+                        </group>
+                        <group>
+                            <field name="codigo_metodo_pago" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" required="1" help="Método de Pago de la Factura"/>
+                            <field name="numero_tarjeta" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" context="{'invisible': [('codigo_metodo_pago', '!=', '2')], 'required': [('codigo_metodo_pago', '=', '2')]}" placeholder="Primeros 4 y últimos 4 dígitos de la tarjeta"/>
+                            <field name="permitir_nit_invalido" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" />
+                        </group>
+                        <group>
+                            <field name="custom_subtotal" widget="monetary" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;"/>
+                            <field name="additional_discount" widget="monetary" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" />
+                        </group>
+                        <group>
+                            <field name="gift_card_amount" widget="monetary" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" />
+                            <field name="custom_total" widget="monetary" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;"/>
+                        </group>
+                    </group>
+                </xpath>
+                <xpath expr="//field[@name='invoice_line_ids']/tree/field[@name='price_subtotal']" position="attributes">
+                    <attribute name="string">Subtotal</attribute>
+                </xpath>
+                <xpath expr="//button[@name='action_post']" position="attributes">
+                    <attribute name="confirm">¿Está seguro de que desea confirmar esta factura? Esto enviará los datos a la API.</attribute>
+                </xpath>
+                <xpath expr="//sheet/notebook" position="inside">
+                    <page string="Información API">
+                        <group>
+                            <field name="cuf" readonly="1"/>
+                            <field name="api_invoice_id" readonly="1"/>
+                            <field name="api_invoice_state" readonly="1" widget="badge"/>
+                            <field name="pdf_url" readonly="1" widget="url"/>
+                            <field name="sin_url" readonly="1" widget="url"/>
+                            <field name="rollo_url" readonly="1" widget="url"/>
+                            <field name="xml_url" readonly="1" widget="url"/>
+                        </group>
+                        <button name="actualizar_estado_factura" string="Actualizar Estado" type="object" class="oe_highlight" />
+                    </page>
+                </xpath>
+
+                <xpath expr="//form" position="inside">
+                    <div class="o_loading" style="display: none;">
+                        <i class="fa fa-spinner fa-spin fa-2x" role="img" aria-label="Cargando..." title="Cargando..."/>
+                        <p>Procesando factura...</p>
+                    </div>
+                </xpath>
+                <xpath expr="//header/button[@name='action_post']" position="after">
+                    <button name="action_print_rollo" string="Imprimir Rollo" type="object" class=""/>
+                    <button name="action_send_whatsapp" string="Enviar por WhatsApp" type="object" class=""/>
+
+                </xpath>
+                <!-- <xpath expr="//button[@name='action_invoice_print']" position="attributes">
+                    <attribute name="name">action_preview_invoice</attribute>
+                </xpath> -->
+
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -5,7 +5,7 @@
 
 ## Creación de módulos personalizados
 - [X] Crear módulo personalizado para el método de pago.
-- [ ] Crear reglas en el método de pago donde la facturación sea obligatoria (con una casilla).
+- [X] Crear reglas en el método de pago donde la facturación sea obligatoria (con una casilla).
 
 ## Modificaciones en el módulo POS
 - [ ] Modificar el módulo POS en la información del cliente y en el cliente para eliminar todo excepto:

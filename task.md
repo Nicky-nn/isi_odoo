@@ -8,12 +8,12 @@
 - [X] Crear reglas en el método de pago donde la facturación sea obligatoria (con una casilla).
 
 ## Modificaciones en el módulo POS
-- [ ] Modificar el módulo POS en la información del cliente y en el cliente para eliminar todo excepto:
-  - [ ] Razón Social
-  - [ ] Número de Documento
-  - [ ] Complemento
-  - [ ] Tipo de Documento
-  - [ ] Teléfono celular
+- [X] Modificar el módulo POS en la información del cliente y en el cliente para eliminar todo excepto:
+  - [X] Razón Social
+  - [X] Número de Documento
+  - [X] Complemento
+  - [X] Tipo de Documento
+  - [X] Teléfono celular
 - [ ] Implementar lógica en el POS en coordinación con el método de pago donde, si hay una regla predefinida, no se podrá deshabilitar la facturación; será obligatorio.
 
 ## Uso de WhatsApp

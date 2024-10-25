@@ -30,6 +30,12 @@ class POSPaymentMethod(models.Model):
         default=False
     )
 
+    facturacion_obligatoria = fields.Boolean(
+        string='Facturación Obligatoria',
+        default=False,
+        help="Si está marcado, las ventas con este método de pago requerirán facturación obligatoria"
+    )
+
     @api.model
     def _get_api_config(self):
         self.env.cr.execute("""
@@ -62,19 +68,21 @@ class POSPaymentMethod(models.Model):
         """
 
         try:
-            response = requests.post(api_url, json={'query': query}, headers=headers)
+            response = requests.post(
+                api_url, json={'query': query}, headers=headers)
             response.raise_for_status()
             data = response.json()
-            return [(str(method['codigoClasificador']), method['descripcion']) 
+            return [(str(method['codigoClasificador']), method['descripcion'])
                     for method in data['data']['sinTipoMetodoPago']]
         except requests.RequestException as e:
-            _logger.error(f"Error al obtener métodos de pago de la API: {str(e)}")
+            _logger.error(
+                f"Error al obtener métodos de pago de la API: {str(e)}")
             return []
 
     @api.model
     def _get_payment_method_selection(self):
         methods = self.get_payment_methods_from_api()
         if not methods:
-            _logger.warning("No se pudieron obtener métodos de pago de la API. Solo estará disponible la opción vacía.")
-        # Agregamos una opción vacía explícita al inicio de la lista
+            _logger.warning(
+                "No se pudieron obtener métodos de pago de la API. Solo estará disponible la opción vacía.")
         return methods

@@ -1,10 +1,13 @@
+import random
 from odoo import models, fields, api, http
 from odoo.http import request
 import requests
 import base64
 import logging
+import json
 
 _logger = logging.getLogger(__name__)
+
 
 class PosOrder(models.Model):
     _inherit = 'pos.order'
@@ -12,53 +15,95 @@ class PosOrder(models.Model):
     rollo_pdf = fields.Binary("PDF del Rollo", attachment=True)
 
     def action_pos_order_paid(self):
-        print("________________________________________")
+        print("\n----------------------------------------")
         print("Iniciando proceso de facturación")
-        print("________________________________________")
+        print("----------------------------------------")
 
-        # Logging información del cliente
+        # Estructura del cliente
+        cliente = {}
         if self.partner_id:
-            print("________________________________________")
-            print("Datos del Cliente:")
-            print(f"Nombre: {self.partner_id.name}")
-            print(f"RAZON SOCIAL: {self.partner_id.razon_social}")
-            print(f"Complemento: {self.partner_id.complemento}")
-            print(f"CODIGO TIPO DOCUMENTO: {self.partner_id.codigo_tipo_documento_identidad}")
-            print(f"E-Mail: {self.partner_id.email}")
-            print(f"ID Cliente: {self.partner_id.id}")
-            print(f"VAT/NIF: {self.partner_id.vat or 'No especificado'}")
+            cliente = {
+                'razonSocial': self.partner_id.razon_social or 'Sin Razón Social',
+                'numeroDocumento': self.partner_id.vat or '',
+                'email': self.partner_id.email or '',
+                'codigoTipoDocumentoIdentidad': self.partner_id.codigo_tipo_documento_identidad or 1,
+                'complemento': self.partner_id.complemento or ''
+            }
         else:
-            print("Cliente: No especificado")
+            cliente = {
+                'razonSocial': 'Sin Razón Social',
+                'numeroDocumento': '',
+                'email': '',
+                'codigoTipoDocumentoIdentidad': 1
+            }
 
-        # Logging productos
-        print("________________________________________")
-        print("Productos en la orden:")
+        # Estructura del detalle
+        detalle = []
+        codigos_producto_sin = []
+
         for line in self.lines:
-            print(f"- Producto: {line.product_id.name}")
-            print(f"  Código Producto: {line.product_id.default_code}")
-            print(f"  Código Producto SIN: {line.product_id.codigo_producto_homologado}")
-            print(f"  Código Unidad de Medida: {line.product_id.codigo_unidad_medida}")
-            print(f"  Cantidad: {line.qty}")
-            print(f"  Precio unitario: {line.price_unit}")
-            print(f"  Monto Descuento: {line.discount}")
-            print(f"  Subtotal: {line.price_subtotal}")
+            # Obtener los productos q son combos
+            print(f"Producto: {line.product_id.name}")
+            try:
+                item_detalle = {
+                    'codigoProductoSin': line.product_id.codigo_producto_homologado.split(' - ')[1] or '',
+                    'codigoProducto': line.product_id.default_code or '',
+                    'descripcion': line.product_id.name,
+                    'cantidad': line.qty,
+                    'unidadMedida': int(line.product_id.codigo_unidad_medida.split(' - ')[0]) or '',
+                    'precioUnitario': line.price_unit,
+                    'montoDescuento': line.price_unit * line.qty * line.discount / 100,
+                    'detalleExtra': '',
+                }
+                detalle.append(item_detalle)
 
-        # Logging métodos de pago
-        print("________________________________________")
-        print("Métodos de pago:")
-        for payment in self.payment_ids:
-            print(f"- Método: {payment.payment_method_id.name}")
-            print(f"  Codigo Metodo: {payment.payment_method_id.metodo_pago_sin}")
-            print(f"  Monto: {payment.amount}")
+            except Exception as e:
+                print(f"Error procesando producto {
+                      line.product_id.name}: {str(e)}")
+                _logger.error(f"Error procesando producto: {str(e)}")
 
-        # Logging totales
-        print("________________________________________")
-        print(f"Subtotal: {self.amount_total - self.amount_tax}")
-        print(f"IVA: {self.amount_tax}")
-        print(f"Total: {self.amount_total}")
-        print("________________________________________")
+        actividad_economica = random.choice(
+            codigos_producto_sin) if codigos_producto_sin else '620000'
+
+        # Determinar el metodo de pago y numero de tarjeta
+        numero_tarjeta = None
+        codigo_metodo_pago = 1  # Valor por defecto
+
+        if self.payment_ids:
+            payment = self.payment_ids[0]
+            try:
+                codigo_metodo_pago = int(
+                    payment.payment_method_id.metodo_pago_sin)
+            except:
+                print(
+                    "ADVERTENCIA: No se pudo obtener método de pago SIN, usando valor por defecto")
+
+            if codigo_metodo_pago == 2:
+                numero_tarjeta = "00000000"
+
+        # Estructura de la factura completa
+        factura = {
+            'cliente': cliente,
+            'codigoExcepcion': 1,
+            'actividadEconomica': actividad_economica,
+            'codigoMetodoPago': codigo_metodo_pago,
+            'numeroTarjeta': numero_tarjeta,
+            'descuentoAdicional': 0,
+            'codigoMoneda': 1,
+            'tipoCambio': 1,
+            'detalleExtra': '<p><strong>Detalle extra</strong></p>',
+            'detalle': detalle
+        }
+
+        print("\n----------------------------------------")
+        print("Factura completa:")
+        print(json.dumps(factura, indent=2))
+        print("----------------------------------------")
 
         # Marcar como pagado
         self.write({'state': 'paid'})
+
+        print("\nOrden marcada como pagada")
+        print("----------------------------------------\n")
 
         return True

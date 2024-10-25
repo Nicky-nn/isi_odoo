@@ -1,4 +1,6 @@
 __pycache__
+*.pyc
+*.pyo
 models/__pycache__
 models/__pycache__/isi_metodoPago.cpython-312.pyc
 models/__pycache__/isi_factura_pos.cpython-312.pyc

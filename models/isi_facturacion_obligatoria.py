@@ -33,8 +33,8 @@ class PosPaymentMethod(models.Model):
     _inherit = 'pos.payment.method'
 
     # Definir los campos nuevos si no existen
-    metodo_pago_sin = fields.Integer(string='Método de Pago Sin', readonly=False)
-    facturacion_obligatoria = fields.Boolean(string='Facturación Obligatoria', default=False)
+    # metodo_pago_sin = fields.Integer(string='Método de Pago Sin', readonly=False)
+    # facturacion_obligatoria = fields.Boolean(string='Facturación Obligatoria', default=False)
 
     def _get_payment_method_information(self):
         result = super()._get_payment_method_information()

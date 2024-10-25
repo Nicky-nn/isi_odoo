@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="res_config_settings_view_form_inherit_pos_siat" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.pos.siat</field>
+            <field name="model">res.config.settings</field>
+            <field name="inherit_id" ref="point_of_sale.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//block[@id='pos_bills_and_receipts_section']" position="inside">
+                    <div class="col-xs-12 col-md-6 o_setting_box">
+                        <div class="o_setting_left_pane">
+                            <field name="pos_allow_siat_customer"/>
+                        </div>
+                        <div class="o_setting_right_pane">
+                            <label for="pos_allow_siat_customer" string="Permitir Configuración según SIAT"/>
+                            <span class="badge" style="background-color: #875A7B; color: white; float: right;">ISI-ODOO</span>
+                            <div class="text-muted">
+                                Active esta opción para mostrar solo los campos requeridos por el SIAT en el PdV.
+                            </div>
+                        </div>
+                    </div>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

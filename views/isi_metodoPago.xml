@@ -25,7 +25,8 @@ Elementos:
         <field name="inherit_id" ref="point_of_sale.pos_payment_method_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='journal_id']" position="after">
-                <field name="metodo_pago_sin" widget="selection" options="{'no_create': True, 'no_open': True}" help="Asociar un método de pago de SIN a POS"/>
+                <field name="metodo_pago_sin" widget="selection" options="{'no_create': True, 'no_open': True}" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" help="Asociar un método de pago de SIN a POS"/>
+                <field name="facturacion_obligatoria" widget="boolean_toggle" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" help="Si está marcado, las ventas con este método de pago requerirán facturación obligatoria"/>
             </xpath>
         </field>
     </record>

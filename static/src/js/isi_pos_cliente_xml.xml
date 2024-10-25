@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="PartnerDetailsEdit" t-inherit="point_of_sale.PartnerDetailsEdit" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('partner-details-box')]" position="replace">
+            <div class="partner-details-box">
+                <div class="row">
+                    <t t-if="showSiatFields">
+                        <!-- NIF -->
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="vat">Núm. Documento</label>
+                            <input class="detail form-control" name="vat" t-model="changes.vat" type="text" t-att-class="{'border-danger': missingFields.includes('vat')}"/>
+                        </div>
+
+                        <!-- Tipo de Documento -->
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="codigo_tipo_documento_identidad">Tipo de Documento</label>
+                            <select class="detail form-select" name="codigo_tipo_documento_identidad" t-model="changes.codigo_tipo_documento_identidad" t-att-class="{'border-danger': missingFields.includes('codigo_tipo_documento_identidad')}">
+                                <option value="">Seleccionar...</option>
+                                <t t-foreach="documentTypes" t-as="docType" t-key="docType.codigoClasificador">
+                                    <option t-att-value="docType.codigoClasificador">
+                                        <t t-esc="docType.descripcion"/>
+                                    </option>
+                                </t>
+                            </select>
+                        </div>
+
+                        <!-- Complemento -->
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="complemento">Complemento</label>
+                            <input class="detail form-control" name="complemento" t-model.trim="changes.complemento" type="text"/>
+                        </div>
+
+                        <!-- Teléfono -->
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="mobile">Teléfono celular</label>
+                            <input class="detail form-control" name="mobile" t-model="changes.mobile" type="tel"/>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <!-- Campos estándar que siempre se muestran -->
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="street">Calle</label>
+                            <input class="detail form-control" name="street" t-model="changes.street" type="text"/>
+                        </div>
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="city">Ciudad</label>
+                            <input class="detail form-control" name="city" t-model="changes.city" type="text"/>
+                        </div>
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="zip">Código Postal</label>
+                            <input class="detail form-control" name="zip" t-model="changes.zip" type="text"/>
+                        </div>
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="email">Correo Electrónico</label>
+                            <input class="detail form-control" name="email" t-model="changes.email" type="email"/>
+                        </div>
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="phone">Teléfono</label>
+                            <input class="detail form-control" name="phone" t-model="changes.phone" type="tel"/>
+                        </div>
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="mobile">Teléfono Celular</label>
+                            <input class="detail form-control" name="mobile" t-model="changes.mobile" type="tel"/>
+                        </div>
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="barcode">Código de Barras</label>
+                            <input class="detail form-control" name="barcode" t-model="changes.barcode" type="text"/>
+                        </div>
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="state_id">Estado</label>
+                            <select class="detail form-select" name="state_id" t-model="changes.state_id">
+                                <option value="">Seleccionar...</option>
+                                <!-- Verifica si states está definido -->
+                                <t t-if="states">
+                                    <t t-foreach="states" t-as="state" t-key="state.id">
+                                        <option t-att-value="state.id">
+                                            <t t-esc="state.name"/>
+                                        </option>
+                                    </t>
+                                </t>
+                            </select>
+                        </div>
+
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="country_id">País</label>
+                            <select class="detail form-select" name="country_id" t-model="changes.country_id">
+                                <option value="">Seleccionar...</option>
+                                <!-- Populate options here -->
+                            </select>
+                        </div>
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="lang">Idioma</label>
+                            <select class="detail form-select" name="lang" t-model="changes.lang">
+                                <option value="">Seleccionar...</option>
+                                <!-- Populate options here -->
+                            </select>
+                        </div>
+                        <div class="partner-detail col-md-6">
+                            <label class="form-label label" for="vat">NIF</label>
+                            <input class="detail form-control" name="vat" t-model="changes.vat" type="text"/>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </xpath>
+    </t>
+</templates>

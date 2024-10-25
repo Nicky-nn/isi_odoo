@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="point_of_sale.CardNumberModal" owl="1">
+        <div role="dialog" class="modal-dialog" style="z-index: 9999;">
+            <div class="modal-content" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; width: 400px; max-width: 100%; padding: 20px; background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;">
+                <header class="modal-header">
+                    <h5 class="modal-title">Ingrese el número de tarjeta</h5>
+                    <button class="close" t-on-click="cancel">
+                        <i class="fa fa-times" aria-label="Close"/>
+                    </button>
+                </header>
+                <main class="modal-body">
+                    <div class="form-group">
+                        <input type="text" class="form-control text-center" t-model="state.cardNumber" t-ref="cardInput" maxlength="8" placeholder="########" t-on-input="validateInput" t-on-keyup="handleKeyup" autofocus="true"/>
+                        <small class="text-muted">Ingrese los 8 dígitos de la tarjeta</small>
+                        <p t-if="state.error" class="text-danger mt-2">
+                            <t t-esc="state.error"/>
+                        </p>
+                    </div>
+                </main>
+                <footer class="modal-footer">
+                    <button class="btn btn-secondary" t-on-click="cancel">
+                        Cancelar
+                    </button>
+                    <!-- <button class="btn btn-primary" t-on-click="confirm" t-att-disabled="!state.isValid"> -->
+                    <button class="btn btn-primary" t-on-click="confirm">
+                        Confirmar
+                    </button>
+                </footer>
+            </div>
+            <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9998;"></div>
+        </div>
+    </t>
+</templates>

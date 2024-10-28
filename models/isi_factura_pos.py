@@ -170,6 +170,28 @@ class PosOrder(models.Model):
 
             raise
 
+    def _check_pdf_content(self):
+        """Verifica si el contenido del PDF es válido"""
+        if not self.rollo_pdf:
+            _logger.warning(f"rollo_pdf está vacío para la orden: {self.id}")
+            return False
+        
+        try:
+            pdf_content = base64.b64decode(self.rollo_pdf)
+            if not pdf_content:
+                _logger.warning(f"PDF decodificado está vacío para la orden: {self.id}")
+                return False
+            
+            if pdf_content[:4] != b'%PDF':
+                _logger.warning(f"El contenido no parece ser un PDF válido para la orden: {self.id}")
+                return False
+            
+            _logger.info(f"PDF válido para la orden: {self.id}")
+            return True
+        except Exception as e:
+            _logger.error(f"Error al verificar el PDF para la orden {self.id}: {str(e)}")
+            return False
+
     def action_pos_order_paid(self):
         print("\n----------------------------------------")
         print("Iniciando proceso de facturación")
@@ -192,12 +214,23 @@ class PosOrder(models.Model):
                 
                 # Guardar el PDF del rollo si está disponible
                 if result.get('representacionGrafica', {}).get('rollo'):
-                    rollo_pdf = result['representacionGrafica']['rollo']
-                    self.write({
-                        'rollo_pdf': rollo_pdf,
-                        'cuf': result.get('cuf'),
-                        'estado_factura': result.get('state')
-                    })
+                    rollo_url = result['representacionGrafica']['rollo']
+                    try:
+                        # Descargar el PDF desde la URL
+                        pdf_response = requests.get(rollo_url)
+                        if pdf_response.status_code == 200:
+                            # Convertir el contenido a base64
+                            pdf_base64 = base64.b64encode(pdf_response.content).decode('utf-8')
+                            self.write({
+                                'rollo_pdf': pdf_base64,
+                                'cuf': result.get('cuf'),
+                                'estado_factura': result.get('state')
+                            })
+                            _logger.info(f"PDF del rollo descargado y guardado exitosamente para la orden {self.id}")
+                        else:
+                            _logger.warning(f"No se pudo descargar el PDF del rollo para la orden {self.id}. Status code: {pdf_response.status_code}")
+                    except Exception as e:
+                        _logger.error(f"Error al descargar el PDF del rollo para la orden {self.id}: {str(e)}")
 
                 print("\n----------------------------------------")
                 print("Factura procesada exitosamente")
@@ -227,7 +260,9 @@ class PosOrder(models.Model):
         print("----------------------------------------\n")
         
         return True
+    
 
+    
     @api.model
     def _get_api_config(self):
         self.env.cr.execute("""
@@ -238,3 +273,33 @@ class PosOrder(models.Model):
         """, (self.env.user.id,))
         result = self.env.cr.fetchone()
         return result if result else (None, None)
+
+
+class PosOrderController(http.Controller):
+    @http.route('/pos/web/download_rollo/<int:order_id>', type='http', auth='user')
+    def download_rollo(self, order_id, **kwargs):
+        """Controlador para descargar el PDF del rollo"""
+        try:
+            order = request.env['pos.order'].sudo().browse(order_id)
+            if not order or not order.rollo_pdf:
+                _logger.warning(f"PDF del rollo no encontrado para la orden: {order_id}")
+                return request.not_found()
+
+            if not order._check_pdf_content():
+                _logger.warning(f"El contenido del PDF no es válido para la orden: {order_id}")
+                return request.not_found()
+
+            pdf_data = base64.b64decode(order.rollo_pdf)
+            filename = f'rollo_{order.name}_{order.date_order.strftime("%Y%m%d")}.pdf'
+            
+            headers = [
+                ('Content-Type', 'application/pdf'),
+                ('Content-Disposition', f'attachment; filename="{filename}"'),
+                ('Content-Length', len(pdf_data))
+            ]
+            
+            return request.make_response(pdf_data, headers=headers)
+            
+        except Exception as e:
+            _logger.error(f"Error al descargar el rollo para la orden {order_id}: {str(e)}", exc_info=True)
+            return request.not_found()

@@ -6,6 +6,7 @@
 ## Creación de módulos personalizados
 - [X] Crear módulo personalizado para el método de pago.
   -  Error de independecias, conflicto de paquetes, resolver nivel de prioridad SEMI-ALTA 
+  - [X] ARREGLADO 
 - [X] Crear reglas en el método de pago donde la facturación sea obligatoria (con una casilla).
 
 ## Modificaciones en el módulo POS

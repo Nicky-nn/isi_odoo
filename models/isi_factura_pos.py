@@ -69,6 +69,17 @@ class PosOrder(models.Model):
             print("----------------------------------------")
             response.raise_for_status()
 
+            # Enviar la respuesta al bus de Odoo
+            self.env['bus.bus']._sendone(
+                self.env.user.partner_id, 
+                'api_response_channel', 
+                {
+                    'type': 'api_response',
+                    'payload': response.json()
+                }
+            )
+        
+
             # Parsear los datos de la respuesta
             data = response.json()
 
@@ -215,68 +226,73 @@ class PosOrder(models.Model):
             # Enviar a la API
             response = self._send_invoice_to_api(invoice_data)
 
+            # Verificar si hay errores en la respuesta
+            if 'errors' in response:
+                error_message = response['errors'][0]['message']
+                print("\n----------------------------------------")
+                print(f"Error en la API: {error_message}")
+                print("La orden NO será marcada como pagada")
+                print("----------------------------------------")
+                
+                # No marcamos la orden como pagada y lanzamos el error
+                raise ValueError(f"Error en la respuesta de la API: {error_message}")
+
             if response.get('data', {}).get('facturaCompraVentaCreate'):
                 result = response['data']['facturaCompraVentaCreate']
 
                 # Preparar y crear/actualizar account.move
                 account_move_data = self._prepare_account_move_data(response)
-                account_move = self._create_or_update_account_move(
-                    account_move_data)
+                account_move = self._create_or_update_account_move(account_move_data)
 
                 # Guardar el PDF del rollo si está disponible
                 if result.get('representacionGrafica', {}).get('rollo'):
                     rollo_url = result['representacionGrafica']['rollo']
-                    try:
-                        # Descargar el PDF desde la URL
-                        pdf_response = requests.get(rollo_url)
-                        if pdf_response.status_code == 200:
-                            # Convertir el contenido a base64
-                            pdf_base64 = base64.b64encode(
-                                pdf_response.content).decode('utf-8')
-                            self.write({
-                                'rollo_pdf': pdf_base64,
-                                'cuf': result.get('cuf'),
-                                'estado_factura': result.get('state')
-                            })
-                            _logger.info(
-                                f"PDF del rollo descargado y guardado exitosamente para la orden {self.id}")
-                        else:
-                            _logger.warning(f"No se pudo descargar el PDF del rollo para la orden {
-                                            self.id}. Status code: {pdf_response.status_code}")
-                    except Exception as e:
-                        _logger.error(f"Error al descargar el PDF del rollo para la orden {
-                                      self.id}: {str(e)}")
+                    # try:
+                    #     # Descargar el PDF desde la URL
+                    #     pdf_response = requests.get(rollo_url)
+                    #     if pdf_response.status_code == 200:
+                    #         # Convertir el contenido a base64
+                    #         pdf_base64 = base64.b64encode(pdf_response.content).decode('utf-8')
+                    #         self.write({
+                    #             'rollo_pdf': pdf_base64,
+                    #             'cuf': result.get('cuf'),
+                    #             'estado_factura': result.get('state')
+                    #         })
+                    #         _logger.info(f"PDF del rollo descargado y guardado exitosamente para la orden {self.id}")
+                    #     else:
+                    #         _logger.warning(f"No se pudo descargar el PDF del rollo para la orden {self.id}. Status code: {pdf_response.status_code}")
+                    # except Exception as e:
+                    #     _logger.error(f"Error al descargar el PDF del rollo para la orden {self.id}: {str(e)}")
 
                 print("\n----------------------------------------")
                 print("Factura procesada exitosamente")
                 print(f"CUF: {result.get('cuf')}")
                 print(f"Estado: {result.get('state')}")
                 print("----------------------------------------")
+
+                # Solo marcamos como pagado si todo el proceso fue exitoso
+                self.write({'state': 'paid'})
+                print("\nOrden marcada como pagada")
+                print("----------------------------------------\n")
+                
+                return True
+
             else:
-                error_msg = response.get('errors', [{'message': 'Error desconocido'}])[
-                    0]['message']
+                error_msg = "Respuesta de API inválida"
                 print("\n----------------------------------------")
                 print("Error desconocido al procesar la factura:")
                 print(json.dumps(response, indent=2))
                 print("----------------------------------------")
-                raise ValueError(
-                    f"Error en la respuesta de la API: {error_msg}")
+                raise ValueError(f"Error en la respuesta de la API: {error_msg}")
 
         except Exception as e:
             _logger.error(f"Error en el proceso de facturación: {str(e)}")
             print("\n----------------------------------------")
             print("Error en el proceso de facturación:")
             print(f"Detalles del error: {str(e)}")
+            print("La orden NO será marcada como pagada")
             print("----------------------------------------")
             raise
-
-        # Marcar como pagado
-        self.write({'state': 'paid'})
-
-        print("\nOrden marcada como pagada")
-        print("----------------------------------------\n")
-
-        return True
 
     @api.model
     def _get_api_config(self):

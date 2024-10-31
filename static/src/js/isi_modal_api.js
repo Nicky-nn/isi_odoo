@@ -33,10 +33,6 @@ export class ApiBusService {
         this.orm = orm;
         this.popup = popup;
 
-        console.log("Inicializando servicio de bus para API...");
-        console.log("Canal de notificaciones: notification");
-        console.log("Mensaje de respuesta de API: ", "api_response");
-
         // Canal de comunicación para respuestas de API
         bus_service.addChannel("api_response_channel");
 
@@ -51,11 +47,6 @@ export class ApiBusService {
     dispatch(message) {
         // Verificar si el mensaje es para respuestas de API
         if (message.type === "api_response_channel") {
-            console.log("----------------------------------------");
-            console.log("Respuesta de la API:");
-            console.log(message.payload);
-            console.log("----------------------------------------");
-
             // Mostrar popup según el tipo de respuesta
             this.showApiResponsePopup(message.payload);
         }

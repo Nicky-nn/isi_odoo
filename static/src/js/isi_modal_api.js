@@ -2,16 +2,23 @@
 import { registry } from "@web/core/registry";
 import { Component } from "@odoo/owl";
 
-// Definir un popup personalizado siguiendo la estructura de Odoo
 export class ApiResponsePopup extends Component {
     static template = "api_bus.ApiResponsePopup";
     static defaultProps = {
-        title: "Respuesta de API",
+        type: "error",
+        title: "",
         body: "",
+        urls: {},
     };
 
     setup() {
         // Cualquier lógica de inicialización adicional puede ir aquí
+    }
+
+    openUrl(url) {
+        if (url) {
+            window.open(url, "_blank");
+        }
     }
 }
 
@@ -49,17 +56,39 @@ export class ApiBusService {
             console.log(message.payload);
             console.log("----------------------------------------");
 
-            // Mostrar popup con la respuesta de la API
+            // Mostrar popup según el tipo de respuesta
             this.showApiResponsePopup(message.payload);
         }
     }
 
     showApiResponsePopup(payload) {
-        // Usar el servicio de popup para mostrar el mensaje
-        this.popup.add(ApiResponsePopup, {
-            title: "Respuesta de API",
-            body: JSON.stringify(payload, null, 2)
-        });
+        if (payload.payload.errors) {
+            // Popup de error
+            this.popup.add(ApiResponsePopup, {
+                type: "error",
+                title: payload.payload.errors[0].message.toUpperCase() || "Error",
+                body: "",
+            });
+        } else if (
+            payload.payload.data &&
+            payload.payload.data.facturaCompraVentaCreate
+        ) {
+            // Popup de factura exitosa
+            const factura = payload.payload.data.facturaCompraVentaCreate;
+            const representacionGrafica = factura.representacionGrafica || {};
+
+            this.popup.add(ApiResponsePopup, {
+                type: "success",
+                title: "Factura Generada Exitosamente",
+                body: ``,
+                urls: {
+                    pdf: representacionGrafica.pdf,
+                    rollo: representacionGrafica.rollo,
+                    sin: representacionGrafica.sin,
+                    xml: representacionGrafica.xml,
+                },
+            });
+        }
     }
 }
 

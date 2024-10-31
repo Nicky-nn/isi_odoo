@@ -1,14 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="api_bus.ApiResponsePopup">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg"> <!-- Cambiado a modal-lg para un tamaño más grande -->
             <div class="modal-content">
-                <div class="modal-header">
+                <div t-attf-class="modal-header #{props.type === 'error' ? 'bg-danger text-white' : 'bg-success text-white'}">
+                    <!-- Icono según el tipo -->
+                    <span t-if="props.type === 'error'" class="me-2"><i class="fas fa-times-circle"></i></span>
+                    <span t-if="props.type === 'success'" class="me-2"><i class="fas fa-check-circle"></i></span>
+
                     <h5 class="modal-title"><t t-esc="props.title"/></h5>
                     <button type="button" class="btn-close" t-on-click="props.close"/>
                 </div>
                 <div class="modal-body">
-                    <pre><t t-esc="props.body"/></pre>
+                    <p><t t-esc="props.body"/></p>
+                    
+                    <t t-if="props.type === 'success' and props.urls">
+                        <div class="mt-3">
+                            <h6>Descargar Representación Gráfica:</h6>
+                            <div class="btn-group w-100" role="group">
+                                <!-- Botones de descarga con íconos -->
+                                <button t-if="props.urls.pdf" type="button" class="btn btn-outline-secondary" t-on-click="() => this.openUrl(props.urls.pdf)">
+                                    <i class="fas fa-file-pdf me-2"></i>PDF
+                                </button>
+                                <button t-if="props.urls.rollo" type="button" class="btn btn-outline-secondary" t-on-click="() => this.openUrl(props.urls.rollo)">
+                                    <i class="fas fa-file-pdf me-2"></i>Rollo
+                                </button>
+                                <button t-if="props.urls.sin" type="button" class="btn btn-outline-secondary" t-on-click="() => this.openUrl(props.urls.sin)">
+                                    <i class="fas fa-file-pdf me-2"></i>SIN
+                                </button>
+                                <button t-if="props.urls.xml" type="button" class="btn btn-outline-secondary" t-on-click="() => this.openUrl(props.urls.xml)">
+                                    <i class="fas fa-file-pdf me-2"></i>XML
+                                </button>
+                            </div>
+                        </div>
+                    </t>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" t-on-click="props.close">Cerrar</button>

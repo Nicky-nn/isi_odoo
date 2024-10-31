@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="api_bus.ApiResponsePopup">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><t t-esc="props.title"/></h5>
+                    <button type="button" class="btn-close" t-on-click="props.close"/>
+                </div>
+                <div class="modal-body">
+                    <pre><t t-esc="props.body"/></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" t-on-click="props.close">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

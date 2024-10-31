@@ -1,0 +1,38 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* pos_disable_invoice_download
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 17.0-20240912\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-10-11 00:31+0000\n"
+"PO-Revision-Date: 2024-10-11 00:31+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: pos_disable_invoice_download
+#: model:ir.model.fields,field_description:pos_disable_invoice_download.field_pos_config__allow_pdf_download
+#: model:ir.model.fields,field_description:pos_disable_invoice_download.field_res_config_settings__pos_allow_pdf_download
+#: model_terms:ir.ui.view,arch_db:pos_disable_invoice_download.res_config_settings_view_form_inherit_pos_pdf
+msgid "Allow PDF Download"
+msgstr "Permitir descarga de PDF"
+
+#. module: pos_disable_invoice_download
+#: model:ir.model,name:pos_disable_invoice_download.model_res_config_settings
+msgid "Config Settings"
+msgstr "Ajustes de configuración"
+
+#. module: pos_disable_invoice_download
+#: model_terms:ir.ui.view,arch_db:pos_disable_invoice_download.res_config_settings_view_form_inherit_pos_pdf
+msgid "Enable this option to allow downloading the order receipt as a PDF."
+msgstr "Habilite esta opción para permitir la descarga del recibo del pedido como PDF."
+
+#. module: pos_disable_invoice_download
+#: model:ir.model,name:pos_disable_invoice_download.model_pos_config
+msgid "Point of Sale Configuration"
+msgstr "Configuración del punto de venta"

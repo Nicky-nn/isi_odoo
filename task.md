@@ -17,7 +17,7 @@
   - [X] Tipo de Documento
   - [X] Teléfono celular
 - [X] Implementar lógica en el POS en coordinación con el método de pago donde, si hay una regla predefinida, no se podrá deshabilitar la facturación; será obligatorio.
-- [ ] Reestructura Facturación en el POS
+- [X] Reestructura Facturación en el POS
 
 ## Uso de WhatsApp
 - [ ] Crear una futura reunión para discutir si usarán el sistema de Meta o de otro proveedor.

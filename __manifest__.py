@@ -14,7 +14,7 @@
     'category': 'Uncategorized',
     'version': '0.1',
 
-    'depends': ['base', 'product', 'account', 'account_payment', 'account_fleet', 'sale', 'point_of_sale'],
+    'depends': ['base', 'product', 'account', 'account_payment', 'account_fleet', 'sale', 'point_of_sale', 'bus'],
 
     'data': [
         # 'security/ir.model.access.csv',
@@ -31,6 +31,7 @@
         'views/isi_user_empleado.xml',
         'views/isi_metodoPago.xml',
         'views/isi_pos_cliente.xml',
+        'views/pos.xml',
     ],
     "assets": {
         'point_of_sale._assets_pos': [

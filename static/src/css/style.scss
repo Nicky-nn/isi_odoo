@@ -1,0 +1,23 @@
+.floor-map .table .table-amount {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    font-size: 14px;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.25);
+    color: white;
+    border-radius: 3px;
+    padding: 2px 0;
+    z-index: 10;
+    max-width: calc(100% - 10px);
+}
+
+.floor-map .table .table-amount span {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: inline-block;
+    max-width: 100%;
+}

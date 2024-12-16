@@ -1,21 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!--
-
-Este archivo XML define la vista y acción del asistente "Cambiar Sucursal y Punto de Venta" en Odoo.
-
-- view_sucursal_punto_venta_wizard_form: Define la vista del formulario para el asistente.
-    - sucursal_actual: Muestra la sucursal actual (solo lectura).
-    - punto_venta_actual: Muestra el punto de venta actual (solo lectura).
-    - sucursal_id: Campo para seleccionar una nueva sucursal (se deshabilita la creación y apertura de nuevos registros).
-    - punto_venta_id: Campo para seleccionar un nuevo punto de venta (se deshabilita la creación y apertura de nuevos registros).
-    - sucursales_html: Campo para mostrar contenido HTML.
-    - pie de página: Contiene botones para cambiar de sucursal y punto de venta o cancelar la operación.
-
-- action_sucursal_punto_venta_wizard: Define la acción para abrir el formulario del asistente en una nueva ventana.
-
-- menu_sucursal_punto_venta_wizard: Agrega un elemento de menú debajo del menú "Finanzas" para acceder al asistente.
--->
+    <!-- Vista del wizard -->
     <record id="view_sucursal_punto_venta_wizard_form" model="ir.ui.view">
         <field name="name">sucursal.punto.venta.wizard.form</field>
         <field name="model">sucursal.punto.venta.wizard</field>
@@ -26,24 +10,30 @@ Este archivo XML define la vista y acción del asistente "Cambiar Sucursal y Pun
                     <field name="punto_venta_actual" readonly="1"/>
                 </group>
                 <group>
-                    <field name="sucursal_id" options="{'no_create': True, 'no_open': True}"/>
-                    <field name="punto_venta_id" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="nueva_sucursal"/>
+                    <field name="nuevo_punto_venta"/>
                 </group>
-                <field name="sucursales_html" widget="html"/>
                 <footer>
-                    <button name="action_change_sucursal_punto_venta" string="Cambiar" type="object" class="btn-primary"/>
+                    <button name="action_cambiar_sucursal_punto_venta" string="Cambiar" type="object" class="btn-primary"/>
                     <button string="Cancelar" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
         </field>
     </record>
 
+    <!-- Acción para abrir el wizard -->
     <record id="action_sucursal_punto_venta_wizard" model="ir.actions.act_window">
         <field name="name">Cambiar Sucursal y Punto de Venta</field>
         <field name="res_model">sucursal.punto.venta.wizard</field>
         <field name="view_mode">form</field>
+        <field name="view_id" ref="view_sucursal_punto_venta_wizard_form"/>
         <field name="target">new</field>
     </record>
 
-    <menuitem id="menu_sucursal_punto_venta_wizard" name="Cambiar Sucursal/Punto de Venta" action="action_sucursal_punto_venta_wizard" parent="account.menu_finance" sequence="100"/>
+    <!-- Menú para acceder al wizard -->
+    <menuitem id="menu_sucursal_punto_venta_wizard" 
+              name="Cambiar Sucursal/Punto de Venta" 
+              action="action_sucursal_punto_venta_wizard" 
+              parent="account.menu_finance" 
+              sequence="100"/>
 </odoo>

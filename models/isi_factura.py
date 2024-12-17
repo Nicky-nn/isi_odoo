@@ -208,6 +208,36 @@ class AccountMove(models.Model):
         for move in self.filtered(lambda m: m.move_type == 'out_invoice' and m.state == 'posted'):
             try:
                 move.with_context(show_loading=True).enviar_factura_a_api()
+                
+                # Obtener 'metodo_pago_sin' desde el diario asociado a la factura
+                metodo_pago_sin = move.journal_id.metodo_pago_sin  # Accedemos al campo en 'account.journal'
+                if metodo_pago_sin:
+                    # Buscar un diario que coincida con 'metodo_pago_sin'
+                    journal = self.env['account.journal'].search([('metodo_pago_sin', '=', metodo_pago_sin)], limit=1)
+                    if journal:
+                        # Obtener el método de pago desde 'inbound_payment_method_line_ids'
+                        payment_method_line = journal.inbound_payment_method_line_ids[:1]
+                        payment_method_id = payment_method_line.payment_method_id.id if payment_method_line else False
+
+                        # Crear el pago y asociarlo a la factura
+                        payment_vals = {
+                            'payment_type': 'inbound',
+                            'partner_type': 'customer',
+                            'partner_id': move.partner_id.id,
+                            'amount': move.amount_residual,
+                            'journal_id': journal.id,
+                            'payment_method_id': payment_method_id,
+                            'payment_date': fields.Date.today(),
+                            'communication': move.name,
+                            'invoice_ids': [(6, 0, [move.id])],  # Asociar el pago a la factura
+                        }
+                        payment = self.env['account.payment'].create(payment_vals)
+                        payment.action_post()
+                    else:
+                        _logger.info(f"No se encontró un diario con 'metodo_pago_sin' '{metodo_pago_sin}'. No se registrará el pago automáticamente.")
+                else:
+                    _logger.info("El diario asociado a la factura no tiene definido 'metodo_pago_sin'. No se registrará el pago automáticamente.")
+
             except ValidationError as e:
                 self.env.user.notify_warning(message=str(e), title="Error al enviar factura a API", sticky=True)
         return res
@@ -584,52 +614,65 @@ class AccountMove(models.Model):
             })
 
         return actions if actions else {'type': 'ir.actions.act_window_close'}
+
     def action_send_whatsapp(self):
-        self.ensure_one()
-        if not self.pdf_url:
-            self._log_api_error("No se pudo obtener la URL del PDF de la factura")
+        api_url = self.get_api_url()
+        token = self.get_token_for_user()
 
-        self.env.cr.execute("""
-            SELECT tienda FROM isi_pass_config
-            WHERE user_id = %s
-            LIMIT 1
-        """, (self.env.user.id,))
-        result = self.env.cr.fetchone()
-        if not result:
-            self._log_api_error("No se pudo obtener la tienda del usuario")
-        
-        username = result[0]
+        razon_social = self.partner_id.razon_social or ''
+        nit = self.partner_id.vat or ''
+        urlPDF = self.pdf_url.replace('"', '\\"')
+        telefono = self.phone or ''
 
-        mutation = """
-        mutation pdf {
-          sendMessage(
-            username: "%s",
-            to: "%s",
-            text: "Aquí tienes la factura %s",
-            mediaUrl: "%s",
-            mediaType: "document",
-            fileName: "Factura_%s.pdf"
-          ) {
-            id
-            message
-          }
+        print('__________________________')
+        print('__________________________')
+        print('RAZON SOCIAL: ', razon_social)
+        print('NIT: ', nit)
+        print('URL PDF: ', urlPDF)
+
+        mensaje = f"""Estimado Sr(a) {razon_social},
+
+Se ha generado el presente documento fiscal de acuerdo al siguiente detalle:
+
+FACTURA COMPRA/VENTA
+
+Razón Social: {razon_social}
+NIT/CI/CEX: {nit}
+
+Si recibiste este mensaje por error o tienes alguna consulta acerca de su contenido, comunícate con el remitente.
+
+Agradecemos tu preferencia.""".replace('"', '\\"').replace('\n', '\\n')
+
+        mutation = f"""
+        mutation ENVIAR_ARCHIVO {{
+            waapiEnviarUrl(
+                entidad: {{ codigoSucursal: 0, codigoPuntoVenta: 0 }},
+                input: {{
+                    nombre: "Factura",
+                    mensaje: "{mensaje}",
+                    url: "{urlPDF}",
+                    codigoArea: "591",
+                    telefono: "{telefono}"
+                }}
+            ) {{
+                waapiStatus
+            }}
+        }}
+        """
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {token}'
         }
-        """ % (username, self.partner_id.phone, self.name, self.pdf_url, self.name)
 
-        headers = {'Content-Type': 'application/json'}
-        response = requests.post('https://whapi.isipass.net/whapi', json={'query': mutation}, headers=headers)
-        
+        response = requests.post(api_url, json={'query': mutation}, headers=headers)
+
         if response.status_code == 200:
-            data = response.json()
-            if 'errors' in data:
-                self._log_api_error(f"Error al enviar la factura por WhatsApp: {json.dumps(data['errors'], indent=2)}")
-            self.env.user.notify_info(message=f"Factura {self.name} enviada por WhatsApp")
+            print('Mensaje enviado correctamente')
         else:
-            self._log_api_error(f"Error al enviar la factura por WhatsApp: {response.text}")
+            print('Error al enviar el mensaje:', response.text)
 
-        return {'type': 'ir.actions.act_window_close'}
-    
-    # // reemplazamos el preview_invoice para que muestre el pdf de la factura urlpdf
+
     def preview_invoice(self):
         self.ensure_one()
         if not self.pdf_url:

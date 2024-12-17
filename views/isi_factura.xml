@@ -35,7 +35,6 @@ Estas personalizaciones mejoran el formulario de factura al proporcionar informa
                             -
                             <field name="sucursal_codigo" readonly="1" class="oe_inline"/>
                             <br/>
-                            <!-- <button name="action_change_pv_sucursal" type="object" string="Cambiar Sucursal / Punto de Venta" class="oe_highlight"/> -->
                         </h4>
                     </div>
                 </xpath>
@@ -96,9 +95,8 @@ Estas personalizaciones mejoran el formulario de factura al proporcionar informa
                     </div>
                 </xpath>
                 <xpath expr="//header/button[@name='action_post']" position="after">
-                    <button name="action_print_rollo" string="Imprimir Rollo" type="object" class=""/>
-                    <button name="action_send_whatsapp" string="Enviar por WhatsApp" type="object" class=""/>
-
+                    <button name="action_print_rollo" string="Imprimir Rollo" type="object" invisible="state not in ('posted')" class=""/>
+                    <button name="action_send_whatsapp" string="Enviar por WhatsApp" type="object" invisible="state not in ('posted')" class=""/>
                 </xpath>
                 <!-- <xpath expr="//button[@name='action_invoice_print']" position="attributes">
                     <attribute name="name">action_preview_invoice</attribute>

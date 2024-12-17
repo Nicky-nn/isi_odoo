@@ -25,7 +25,6 @@
         'views/isi_user_config.xml',
         'views/isi_clientes.xml',
         'views/isi_factura.xml',
-        'views/isi_sucursal.xml',
         'views/sucursal_punto_venta_views.xml',
         'views/res_partner_views.xml',
         'views/isi_user_empleado.xml',

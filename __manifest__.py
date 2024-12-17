@@ -31,6 +31,7 @@
         'views/isi_metodoPago.xml',
         'views/isi_pos_cliente.xml',
         'views/pos.xml',
+        'views/isi_diarios.xml',
     ],
     "assets": {
         'point_of_sale._assets_pos': [

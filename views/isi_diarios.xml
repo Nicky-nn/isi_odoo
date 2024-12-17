@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_journal_form" model="ir.ui.view">
+        <field name="name">account.journal.form</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.view_account_journal_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='type']" position="after">
+                <field name="metodo_pago_sin" style="background-color: #f0f2f5; margin-bottom: 10px; border-radius: 5px;" help="Asociar un método de pago de SIN a POS"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

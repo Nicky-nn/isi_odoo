@@ -13,3 +13,4 @@ from . import isi_metodoPago
 from . import isi_pos_cliente
 from . import isi_facturacion_obligatoria
 from . import pos
+from . import isi_diarios

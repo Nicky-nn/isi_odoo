@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISIODOO - Plugin para Odoo</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --text-color: #2c3e50;
+            --light-bg: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: #fff;
+        }
+
+        .header {
+            background: white;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px 20px;
+        }
+
+        .logo {
+            max-height: 60px;
+            width: auto;
+        }
+
+        .hero {
+            margin-top: 90px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 100px 20px;
+            text-align: center;
+            clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+        }
+
+        .hero h1 {
+            font-size: 2.8em;
+            margin-bottom: 20px;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        .hero h2 {
+            font-weight: 400;
+            color: #ecf0f1;
+            margin-top: 30px;
+        }
+
+        .content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.2em;
+            color: var(--primary-color);
+            margin-bottom: 50px;
+            font-weight: 300;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-card h3 {
+            color: var(--accent-color);
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .integration-section {
+            background: var(--light-bg);
+            padding: 80px 0;
+            margin-top: 60px;
+        }
+
+        .integration-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .integration-text {
+            padding-right: 40px;
+        }
+
+        .integration-text h2 {
+            color: var(--primary-color);
+            font-size: 2em;
+            margin-bottom: 30px;
+            font-weight: 300;
+        }
+
+        .integration-text p {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .integration-image {
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 768px) {
+            .integration-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .hero h1 {
+                font-size: 2em;
+            }
+            
+            .feature-card {
+                padding: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container">
+            <img src="https://integrate.com.bo/wp-content/uploads/2019/02/logo_full.png" alt="Integrate Logo" class="logo">
+            <img src="https://integrate.com.bo/wp-content/uploads/2022/02/LOGOISIPASS.png" alt="ISIPASS Logo" class="logo">
+        </div>
+    </div>
+
+    <div class="hero">
+        <h1>ISIODOO Plugin</h1>
+        <p>La solución definitiva para la facturación electrónica en Odoo</p>
+        <h2>Cumple con la nueva normativa del S.I.N. de manera automática y sin complicaciones</h2>
+    </div>
+
+    <div class="content">
+        <h2 class="section-title">Características Principales</h2>
+        
+        <div class="features">
+            <div class="feature-card">
+                <h3>Automatización Completa</h3>
+                <p>Olvídate del procesamiento manual. ISIODOO se encarga automáticamente de toda la gestión de facturas electrónicas, cumpliendo con los requisitos del S.I.N.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>Integración Nativa</h3>
+                <p>Diseñado específicamente para Odoo, ISIODOO se integra perfectamente con tu sistema existente, manteniendo todos tus procesos actuales sin interrupciones.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>Actualizaciones Automáticas</h3>
+                <p>Mantente siempre al día con las normativas. ISIODOO se actualiza automáticamente para cumplir con los últimos requisitos del S.I.N.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="integration-section">
+        <div class="integration-content">
+            <div class="integration-text">
+                <h2>Integración Perfecta con tu Sistema Actual</h2>
+                <p>ISIODOO se ha diseñado pensando en la facilidad de uso y la eficiencia. La integración con tu sistema Odoo existente es transparente y no requiere cambios en tus procesos actuales.</p>
+                <p>Nuestro plugin maneja automáticamente todo el proceso de facturación electrónica, desde la generación hasta la validación con el S.I.N., permitiéndote enfocarte en lo que realmente importa: tu negocio.</p>
+            </div>
+            <div class="integration-image">
+                <img src="/api/placeholder/500/300" alt="Integración ISIODOO" style="width: 100%; height: auto; border-radius: 10px;">
+            </div>
+        </div>
+    </div>
+</body>
+</html>

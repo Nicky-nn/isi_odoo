@@ -346,12 +346,6 @@ class PosOrder(models.Model):
         result = response_data.get('data', {}).get('facturaCompraVentaCreate', {})
         representacion_grafica = result.get('representacionGrafica', {})
         
-        # Generar secuencia para el nombre de la factura
-        sequence = self.env['ir.sequence'].next_by_code('pos.invoice.sequence') or 'POS/%(year)s/%(month)02d/%(seq)s' % {
-            'year': self.date_order.year,
-            'month': self.date_order.month,
-            'seq': str(self.id).zfill(4)
-        }
         
         # Preparar líneas de factura
         invoice_lines = []
@@ -372,7 +366,6 @@ class PosOrder(models.Model):
 
         return {
             # Campos de sistema con valores específicos
-            'name': sequence,
             'state': 'draft',  # Cambiado a 'draft' en lugar de 'posted'
             'payment_state': 'not_paid',  # Inicialmente no pagado
             'move_type': 'out_invoice',

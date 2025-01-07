@@ -3,13 +3,13 @@
 ## Paso 1: Descarga y Preparación
 
 1. **Descarga el Plugin**
-   - Descarga el paquete del plugin "nick" desde esté repositorio.
+   - Descarga el paquete del plugin "isiodoo" desde esté repositorio.
   
 > [!WARNING]
-> Asegúrate de que el plugin "nick" sea compatible con la versión de Odoo que estás utilizando. Si no es así, es posible que encuentres problemas de compatibilidad y funcionalidad.
+> Asegúrate de que el plugin "isiodoo" sea compatible con la versión de Odoo que estás utilizando. Si no es así, es posible que encuentres problemas de compatibilidad y funcionalidad.
 
 2. **Cambiar el Nombre de la Carpeta**
-   - Una vez descargado, cambia el nombre de la carpeta del plugin a **"nick"** (con fines de prueba y desarrollo).
+   - Una vez descargado, cambia el nombre de la carpeta del plugin a **"isiodoo"** (con fines de prueba y desarrollo).
 
 ## Paso 2: Mover la Carpeta al Directorio de Instalación de Odoo
 
@@ -20,14 +20,14 @@
      ```
 
 2. **Mover la Carpeta**
-   - Copia la carpeta **"nick"** en el directorio de addons de Odoo:
+   - Copia la carpeta **"isiodoo"** en el directorio de addons de Odoo:
      ```
-     (nombre_de_la_carpeta_de_instalación)/odoo/addons/nick
+     (nombre_de_la_carpeta_de_instalación)/odoo/addons/isiodoo
      ```
 
 ## Requisitos Previos
 
-Antes de instalar y utilizar el plugin "nick", asegúrate de que cumples con los siguientes requisitos:
+Antes de instalar y utilizar el plugin "isiodoo", asegúrate de que cumples con los siguientes requisitos:
 
 - **Python**: Este componente está diseñado para funcionar con versiones de Odoo 17, 18 y posteriores. Por lo tanto, asegúrate de tener instalada una versión de Python compatible (preferiblemente Python 3.8 o superior).
 
@@ -43,13 +43,13 @@ Antes de instalar y utilizar el plugin "nick", asegúrate de que cumples con los
    - Después de mover la carpeta, reinicia el servidor de Odoo para que reconozca el nuevo plugin.
 
 2. **Activar el Plugin**
-   - Ve al panel de administración de Odoo y activa el plugin "nick" desde la sección de aplicaciones.
+   - Ve al panel de administración de Odoo y activa el plugin "isiodoo" desde la sección de aplicaciones.
 
 3. **Verificación**
    - Asegúrate de que el plugin esté funcionando correctamente realizando pruebas en la funcionalidad específica que ofrece.
   
 > [!IMPORTANT]
-> Si estás utilizando una versión de Odoo anterior a la 17, es posible que algunas funcionalidades del plugin "nick" no estén disponibles, instala una versión compatible del plugin o actualiza tu instancia de Odoo.
+> Si estás utilizando una versión de Odoo anterior a la 17, es posible que algunas funcionalidades del plugin "isiodoo" no estén disponibles, instala una versión compatible del plugin o actualiza tu instancia de Odoo.
 
 ## Comando mas Usados
 
@@ -96,7 +96,7 @@ python3 odoo-bin shell --config /ruta/a/tu/archivo.conf
 
 ## Conclusión
 
-Siguiendo estos pasos, podrás instalar y configurar el plugin "nick" en tu instancia de Odoo. Si encuentras algún problema durante la instalación, consulta la documentación oficial de Odoo o busca soporte en la comunidad de Odoo.
+Siguiendo estos pasos, podrás instalar y configurar el plugin "isiodoo" en tu instancia de Odoo. Si encuentras algún problema durante la instalación, consulta la documentación oficial de Odoo o busca soporte en la comunidad de Odoo.
 
 Developer: [Nick](https://www.linkedin.com/in/nickynn/)
 

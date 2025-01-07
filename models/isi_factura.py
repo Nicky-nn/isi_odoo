@@ -1,7 +1,7 @@
 import base64
 import re
 from odoo import models, fields, api
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 import requests
 import logging
 import json
@@ -629,6 +629,10 @@ class AccountMove(models.Model):
         print('RAZON SOCIAL: ', razon_social)
         print('NIT: ', nit)
         print('URL PDF: ', urlPDF)
+        print('TELEFONO: ', telefono)
+        print('__________________________')
+        print('__________________________')
+
 
         mensaje = f"""Estimado Sr(a) {razon_social},
 
@@ -666,11 +670,24 @@ Agradecemos tu preferencia.""".replace('"', '\\"').replace('\n', '\\n')
         }
 
         response = requests.post(api_url, json={'query': mutation}, headers=headers)
+        response_data = response.json()
+
+        if 'errors' in response_data:
+            error_message = response_data['errors'][0]['message']
+            raise UserError(f"Error al enviar el mensaje: {error_message}")
+        else:
+            print('RESPONSE: ', response.text)
 
         if response.status_code == 200:
             print('Mensaje enviado correctamente')
+            self.env['bus.bus']._sendone(self.env.user.partner_id, 'simple_notification', {
+                'type': 'success',
+                'title': 'Mensaje enviado',
+                'message': 'Mensaje enviado correctamente',
+                'sticky': False
+            })
         else:
-            print('Error al enviar el mensaje:', response.text)
+            raise UserError(f"Error al enviar el mensaje: {response.text}")
 
 
     def preview_invoice(self):

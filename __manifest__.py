@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "nick",
+    'name': "isiodoo",
 
     'summary': "Conexión a la API de ISI_INVOICE para la facturación con SIAT",
 
@@ -35,7 +35,7 @@
     ],
     "assets": {
         'point_of_sale._assets_pos': [
-            'nick/static/src/**/*'
+            'isiodoo/static/src/**/*'
         ]
     },
     'demo': [

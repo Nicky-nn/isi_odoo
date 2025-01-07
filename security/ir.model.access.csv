@@ -4,5 +4,3 @@ access_sucursal_punto_venta_api,access.sucursal.punto.venta.api,model_sucursal_p
 access_isi_pass_config,access_isi_pass_config,model_isi_pass_config,base.group_system,1,1,1,1
 
 access_sucursal_punto_venta_wizard,access.sucursal.punto.venta.wizard,model_sucursal_punto_venta_wizard,base.group_user,1,1,1,1
-access_sucursal_info,access.sucursal.info,model_sucursal_info,base.group_user,1,1,1,1
-access_punto_venta_info,access.punto.venta.info,model_punto_venta_info,base.group_user,1,1,1,1

@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="pos_receipt_invoice_send_whatsapp.ReceiptScreen" t-inherit="point_of_sale.ReceiptScreen" t-inherit-mode="extension" owl="1">
-        <xpath expr="//div[hasclass('buttons')]" position="after">
+        <xpath expr="//div[contains(@class, 'buttons')]" position="after">
             <div class="input-group my-3">
-                <input type="text" class="form-control py-3 bg-view" placeholder="Número de WhatsApp"/>
-                <button class="send btn px-5 highlight btn-primary" type="submit">
+                <input 
+                    type="text" 
+                    class="form-control py-3 bg-view" 
+                    placeholder="Número de WhatsApp" 
+                    t-model="orderUiState.phone_number"
+                />
+                <button 
+                    class="send btn px-5 highlight btn-primary" 
+                    type="button"
+                    t-on-click="sendWhatsApp"
+                >
                     <i class="fa fa-whatsapp me-1" aria-hidden="true"></i>
                 </button>
             </div>

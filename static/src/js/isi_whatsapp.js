@@ -1,21 +1,17 @@
 /** @odoo-module **/
 
 import { ReceiptScreen } from "@point_of_sale/app/screens/receipt_screen/receipt_screen";
-import { registry } from "@web/core/registry";
+import { patch } from "@web/core/utils/patch";
+import { useState } from "@odoo/owl";
 
-const patchReceiptScreen = (ReceiptScreen) => class extends ReceiptScreen {
-    static template = "pos_receipt_invoice_send_whatsapp.ReceiptScreen";
-
+patch(ReceiptScreen.prototype, {
     setup() {
-        super.setup();
-        this.orderUiState.phone_number = '';
-        this.sendWhatsApp = this.sendWhatsApp.bind(this);
-    }
+        super.setup(...arguments);
+        this.state = useState({ phoneNumber: "+591 78812548" });
+    },
 
     sendWhatsApp() {
-        const phone = this.orderUiState.phone_number;
-        console.log("Número de teléfono:", phone);
-    }
-};
-
-registry.category("pos_receipt_screens").add("ReceiptScreen", patchReceiptScreen);
+        // Implement your WhatsApp sending logic here
+        console.log("Sending WhatsApp to:", this.state.phoneNumber);
+    },
+});

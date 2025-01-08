@@ -7,7 +7,7 @@
                     type="text" 
                     class="form-control py-3 bg-view" 
                     placeholder="Número de WhatsApp" 
-                    t-model="orderUiState.phone_number"
+                    t-model="state.phoneNumber"
                 />
                 <button 
                     class="send btn px-5 highlight btn-primary" 

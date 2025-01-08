@@ -96,23 +96,16 @@ class WhatsappApiController(http.Controller):
 
             # Manejo de errores
             if 'errors' in response_data:
-                error_message = response_data['errors'][0]['message']
-                print(f"Error devuelto por la API: {error_message}")
-                return {'error': f"Error al enviar el mensaje: {error_message}"}
+                    error_message = response_data['errors'][0]['message']
+                    print(f"Error devuelto por la API: {error_message}")
+                    return {'error': error_message}
 
             if response.status_code == 200:
-                print("Mensaje enviado correctamente. Notificando a la interfaz...")
-                # Enviar notificación a la interfaz
-                request.env['bus.bus']._sendone(request.env.user.partner_id, 'simple_notification', {
-                    'type': 'success',
-                    'title': 'Mensaje enviado',
-                    'message': 'Mensaje enviado correctamente',
-                    'sticky': False
-                })
+                print("Mensaje enviado correctamente.")
                 return {'success': 'Mensaje enviado correctamente'}
             else:
                 print(f"Error HTTP en la solicitud: {response.status_code} - {response.text}")
-                return {'error': f"Error al enviar el mensaje: {response.text}"}
+                return {'error': 'Error al enviar el mensaje.'}
 
         except Exception as e:
             print(f"Excepción capturada: {str(e)}")

@@ -23,18 +23,59 @@ patch(ReceiptScreen.prototype, {
             this.state = useState({ phoneNumber: "" });
         }
     },
+    async getAccountMove(orderId) {
+        try {
+            const [orderWithInvoice] = await this.orm.read(
+                "pos.order",
+                [orderId],
+                ["account_move"],
+                { load: false }
+            );
+
+            if (orderWithInvoice?.account_move) {
+                const [accountMove] = await this.orm.read(
+                    "account.move",
+                    [orderWithInvoice.account_move],
+                    [
+                        "id",
+                        "name",
+                        "date",
+                        "amount_total",
+                        "partner_id",
+                        "state",
+                        "cuf",
+                        "pdf_url",
+                        "sin_url",
+                        "rollo_url",
+                        "xml_url",
+                    ]
+                );
+                return accountMove || null;
+            } else {
+                return null;
+            }
+        } catch (error) {
+            console.error(
+                "Error fetching account move:",
+                error.message,
+                error.stack
+            );
+            return null;
+        }
+    },
 
     async sendWhatsApp() {
         if (this.state.phoneNumber) {
+            const order = this.pos.get_order();
+            const partner = order ? order.get_partner() : null;
+            const accountMove = await this.getAccountMove(order.server_id);
+
             const payload = {
                 telefono: this.state.phoneNumber,
-                razon_social: "Empresa de Prueba",
-                nit: "123456789",
-                url_pdf:
-                    "https://consulta.isipass.com.bo/client/consulta/v1/7yzcs85FYJXFHd5h1C63Z5bLC3vnC6kCK94NT7bbVWkYX3REBReQWj9Amt1xyH5BLUp42KCeoPBTrWMGTKVe8VmkVJR629cNwtMHjpCLPo25oBmezZ6bJYanKAjYpd",
+                razon_social: partner ? partner.name : "",
+                nit: partner ? partner.vat : "",
+                url_pdf: accountMove ? accountMove.pdf_url : "",
             };
-
-            console.log("Enviando mensaje de WhatsApp con datos:", payload);
 
             try {
                 const response = await fetch("/api/send_whatsapp", {
@@ -46,8 +87,6 @@ patch(ReceiptScreen.prototype, {
                 });
 
                 const data = await response.json();
-                console.log("Respuesta del servidor:", data);
-
                 if (data.result.error) {
                     this.dialog.add(AlertDialog, {
                         title: "Error",

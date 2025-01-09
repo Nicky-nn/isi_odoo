@@ -102,10 +102,10 @@ class ISIPassConfig(models.Model):
         for record in self:
             if record.email:
                 hash = hashlib.md5(record.email.lower().encode()).hexdigest()
-                record.avatar = f"https://www.gravatar.com/avatar/{
-                    hash}?d=mp&s=200"
+                record.avatar = f"https://www.gravatar.com/avatar/{hash}?d=mp&s=200"
             else:
                 record.avatar = "https://www.gravatar.com/avatar/?d=monsterid"
+
 
     @api.depends('token')
     def _compute_token_display(self):

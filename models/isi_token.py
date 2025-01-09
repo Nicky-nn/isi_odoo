@@ -98,7 +98,7 @@ class WhatsappApiController(http.Controller):
             if 'errors' in response_data:
                     error_message = response_data['errors'][0]['message']
                     print(f"Error devuelto por la API: {error_message}")
-                    return {'error': error_message}
+                    return {'error': "Error al enviar el mensaje."}
 
             if response.status_code == 200:
                 print("Mensaje enviado correctamente.")

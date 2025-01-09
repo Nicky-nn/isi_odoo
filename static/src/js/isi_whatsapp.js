@@ -6,11 +6,12 @@ import { useState } from "@odoo/owl";
 import { usePos } from "@point_of_sale/app/store/pos_hook";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { useService } from "@web/core/utils/hooks";
-import { Dialog } from "@web/core/dialog/dialog";
+
 
 patch(ReceiptScreen.prototype, {
     setup() {
         super.setup(...arguments);
+        this.uiService = useService('ui');
         this.dialog = useService("dialog");
         this.pos = usePos();
         if (this.pos) {
@@ -66,6 +67,8 @@ patch(ReceiptScreen.prototype, {
 
     async sendWhatsApp() {
         if (this.state.phoneNumber) {
+            this.uiService.block();
+
             const order = this.pos.get_order();
             const partner = order ? order.get_partner() : null;
             const accountMove = await this.getAccountMove(order.server_id);
@@ -87,6 +90,9 @@ patch(ReceiptScreen.prototype, {
                 });
 
                 const data = await response.json();
+
+                this.uiService.unblock();
+
                 if (data.result.error) {
                     this.dialog.add(AlertDialog, {
                         title: "Error",

@@ -96,8 +96,16 @@ python3 odoo-bin shell --config /ruta/a/tu/archivo.conf
 
 ### 11. Comprimir el archivo
    ```
-   zip -r isiodoo.zip addons/isiodoo -x "*.git/*" "*.gitignore" "*/.gitkeep" "*/structure.md" "*/task.md" "*.pyc" "*/__pycache__/*" "*/.DS_Store" "*/.idea/*" "*/.vscode/*" "*/tests/*" "*/.pytest_cache/*" "*/.coverage" "*/htmlcov/*" "*/doc/*" "*/docs/*" "*/README.md" "*/CHANGELOG.md" "*/requirements.txt" "*/requirements-dev.txt"
+   zip -r ../isiodoo.zip . -x ".git/*" ".gitignore" "*.md" ".DS_Store" "*.pyc" "*/__pycache__/*" "*/.DS_Store" "*/.idea/*" "*/.vscode/*" "*/tests/*" "*/.pytest_cache/*" "*/.coverage" "*/htmlcov/*" "*/doc/*" "*/docs/*" "*/README.md" "*/CHANGELOG.md" "*/requirements.txt" "*/requirements-dev.txt"  
    ```
+> [!TIP]
+> La compresión es dentro de la carpeta addons/isiodoo, si se hacce desde afuera modificar la ruta.
+
+
+> [!WARNING]
+> La compresión del archivo es opcional, pero es recomendable para evitar problemas de compatibilidad y seguridad.
+
+
 
 ## Conclusión
 

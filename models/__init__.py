@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from . import models
+from . import isi_homologado
 from . import res_config_settings
 from . import isi_user_config
 from . import isi_clientes

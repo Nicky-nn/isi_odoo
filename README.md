@@ -94,6 +94,11 @@ python3 odoo-bin --config /ruta/a/tu/archivo.conf --generate-docs
 python3 odoo-bin shell --config /ruta/a/tu/archivo.conf
  ```
 
+### 11. Comprimir el archivo
+   ```
+   zip -r isiodoo.zip addons/isiodoo -x "*.git/*" "*.gitignore" "*/.gitkeep" "*/structure.md" "*/task.md" "*.pyc" "*/__pycache__/*" "*/.DS_Store" "*/.idea/*" "*/.vscode/*" "*/tests/*" "*/.pytest_cache/*" "*/.coverage" "*/htmlcov/*" "*/doc/*" "*/docs/*" "*/README.md" "*/CHANGELOG.md" "*/requirements.txt" "*/requirements-dev.txt"
+   ```
+
 ## Conclusión
 
 Siguiendo estos pasos, podrás instalar y configurar el plugin "isiodoo" en tu instancia de Odoo. Si encuentras algún problema durante la instalación, consulta la documentación oficial de Odoo o busca soporte en la comunidad de Odoo.

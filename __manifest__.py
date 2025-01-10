@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "isiodoo",
+    'name': "isi-odoo",
 
     'summary': "Conexión a la API de ISI_INVOICE para la facturación con SIAT",
 
@@ -11,14 +11,14 @@
     'author': "INTEGRATE Soluciones Informáticas",
     'website': "https://integrate.com.bo/",
 
-    'category': 'Uncategorized',
-    'version': '0.1',
+    'category': 'Point of Sale',
+    'version': '1.0.2',
 
-    'depends': ['base', 'product', 'account', 'account_payment', 'account_fleet', 'sale', 'point_of_sale', 'bus'],
+    'depends': ['base', 'product', 'account', 'account_payment', 'account_fleet', 'sale', 'point_of_sale', 'hr'],
 
     'data': [
-        'security/ir.model.access.csv',
-        'views/views.xml',
+        #'security/ir.model.access.csv',
+        'views/isi_homologado.xml',
         'views/templates.xml',
         'security/ir.model.access.csv',
         'views/isi_pass_views.xml',
@@ -41,4 +41,6 @@
     'demo': [
         'demo/demo.xml',
     ],
+    'installable': True,
+    'application': True,
 }

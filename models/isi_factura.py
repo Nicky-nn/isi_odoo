@@ -513,7 +513,7 @@ class AccountMove(models.Model):
                 'punto_venta_descripcion': result[2],
                 'sucursal_codigo': result[3],
                 'sucursal_direccion': result[4],
-            }
+            } or {}
     
     def extraer_numero(codigo):
         # Buscar el primer número en la cadena

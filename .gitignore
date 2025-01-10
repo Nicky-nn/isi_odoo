@@ -6,3 +6,6 @@ models/__pycache__/isi_metodoPago.cpython-312.pyc
 models/__pycache__/isi_factura_pos.cpython-312.pyc
 models/__pycache__/isi_clientes.cpython-312.pyc
 models/__pycache__/__init__.cpython-312.pyc
+.gitignore
+.git
+task

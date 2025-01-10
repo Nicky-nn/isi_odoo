@@ -1,15 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <!--
-Recomendacion : Cambiar nombre a isi_producto_homologado.xml
-
-Este archivo XML define una personalización de vista para el formulario de plantilla de producto de Odoo. Hereda de la vista de formulario de plantilla de producto existente y agrega dos nuevos campos: "Código Producto Homologado" y "Código Unidad de Medida". Estos campos se agregan antes de la sección del cuaderno del formulario.
-
-- El campo "Código Producto Homologado" tiene un estilo con un color de fondo, relleno, margen y radio de borde. Incluye una etiqueta con texto en negrita y en color azul, y un marcador de posición con información sobre herramientas de ayuda.
-- El campo "Código Unidad de Medida" tiene un estilo similar e incluye una etiqueta, un marcador de posición y información sobre herramientas de ayuda.
-
-La personalización se encapsula dentro de un elemento de registro con el ID "view_product_form_inherit" y el modelo "ir.ui.view".
--->
   <record id="view_product_form_inherit" model="ir.ui.view">
     <field name="name">product.template.form.inherit</field>
     <field name="model">product.template</field>

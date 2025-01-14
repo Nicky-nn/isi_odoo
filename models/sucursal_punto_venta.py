@@ -33,8 +33,7 @@ class SucursalPuntoVentaWizard(models.TransientModel):
         puntos = []
         for suc in sucursales:
             for punto in suc.get('puntosVenta', []):
-                puntos.append((str(punto['codigo']), f"{
-                              punto['nombre']} (Código: {punto['codigo']})"))
+                puntos.append((str(punto['codigo']), f"{punto['nombre']} (Código: {punto['codigo']})"))
         return puntos
 
     @api.model

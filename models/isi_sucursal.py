@@ -70,13 +70,9 @@ class SucursalPuntoVentaAPI(models.TransientModel):
     @api.depends()
     def _compute_actual_sucursal_punto_venta(self):
         for record in self:
-            config = self.env['isi_pass_config'].search(
-                [('user_id', '=', self.env.user.id)], limit=1)
-            record.sucursal_actual = f"{
-                config.sucursal_codigo} - {config.sucursal_direccion}"
-            record.punto_venta_actual = f"{
-                config.punto_venta_codigo} - {config.punto_venta_nombre}"
-
+            config = self.env['isi_pass_config'].search([('user_id', '=', self.env.user.id)], limit=1)
+            record.sucursal_actual = f"{config.sucursal_codigo} - {config.sucursal_direccion}"
+            record.punto_venta_actual = f"{config.punto_venta_codigo} - {config.punto_venta_nombre}"
     @api.model
     def get_token_and_url(self):
         current_user_id = self.env.user.id

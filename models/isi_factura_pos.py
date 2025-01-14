@@ -86,8 +86,7 @@ class PosOrder(models.Model):
             # Verificar errores en la respuesta y registrarlos
             if 'errors' in data:
                 error_message = json.dumps(data['errors'], indent=2)
-                self._log_api_error(
-                    f"Error al enviar la factura a la API: {error_message}")
+                self._log_api_error(f"Error al enviar la factura a la API: {error_message}")
 
                 # Mostrar en consola el error detallado
                 print("\n----------------------------------------")
@@ -95,8 +94,7 @@ class PosOrder(models.Model):
                 print(json.dumps(data, indent=2))
                 print("----------------------------------------")
 
-                raise ValueError(
-                    f"Error en la respuesta de la API: {error_message}")
+                raise ValueError(f"Error en la respuesta de la API: {error_message}")
 
             return data
 
@@ -132,8 +130,7 @@ class PosOrder(models.Model):
             _logger.info(f"PDF válido para la orden: {self.id}")
             return True
         except Exception as e:
-            _logger.error(f"Error al verificar el PDF para la orden {
-                          self.id}: {str(e)}")
+            _logger.error(f"Error al verificar el PDF para la orden {self.id}: {str(e)}")
             return False
 
     def _prepare_invoice_data(self):
@@ -431,18 +428,15 @@ class PosOrderController(http.Controller):
         try:
             order = request.env['pos.order'].sudo().browse(order_id)
             if not order or not order.rollo_pdf:
-                _logger.warning(
-                    f"PDF del rollo no encontrado para la orden: {order_id}")
+                _logger.warning(f"PDF del rollo no encontrado para la orden: {order_id}")
                 return request.not_found()
 
             if not order._check_pdf_content():
-                _logger.warning(
-                    f"El contenido del PDF no es válido para la orden: {order_id}")
+                _logger.warning(f"El contenido del PDF no es válido para la orden: {order_id}")
                 return request.not_found()
 
             pdf_data = base64.b64decode(order.rollo_pdf)
-            filename = f'rollo_{order.name}_{
-                order.date_order.strftime("%Y%m%d")}.pdf'
+            filename = f'rollo_{order.name}_{order.date_order.strftime("%Y%m%d")}.pdf'
 
             headers = [
                 ('Content-Type', 'application/pdf'),
@@ -453,6 +447,5 @@ class PosOrderController(http.Controller):
             return request.make_response(pdf_data, headers=headers)
 
         except Exception as e:
-            _logger.error(f"Error al descargar el rollo para la orden {
-                          order_id}: {str(e)}", exc_info=True)
+            _logger.error(f"Error al descargar el rollo para la orden {order_id}: {str(e)}", exc_info=True)
             return request.not_found()

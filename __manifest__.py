@@ -14,7 +14,7 @@
     'category': 'Point of Sale',
     'version': '1.0.2',
 
-    'depends': ['base', 'product', 'account', 'account_payment', 'account_fleet', 'sale', 'point_of_sale', 'hr'],
+    'depends': ['base', 'product', 'account', 'account_payment', 'sale', 'point_of_sale', 'hr'],
 
     'data': [
         #'security/ir.model.access.csv',

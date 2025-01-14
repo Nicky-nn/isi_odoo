@@ -31,6 +31,7 @@
     <record id="isi_pass_config_tree_view" model="ir.ui.view">
         <field name="name">ISI-PASS Config Tree</field>
         <field name="model">isi.pass.config</field>
+        <field name="type">tree</field>
         <field name="arch" type="xml">
             <tree string="ISI-PASS Configurations">
                 <field name="name"/>
@@ -46,6 +47,7 @@
     <record id="isi_pass_config_form_view" model="ir.ui.view">
         <field name="name">ISI-PASS Config Form</field>
         <field name="model">isi.pass.config</field>
+        <field name="type">form</field>
         <field name="arch" type="xml">
             <form string="ISI-PASS Configuration">
                 <sheet>

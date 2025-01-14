@@ -36,49 +36,51 @@ patch(PaymentScreen.prototype, {
             return;
         }
 
-        // console.log("Método de pago seleccionado:", paymentMethod);
-        // // Si es pago con tarjeta, mostrar el modal antes de procesar
-        // if (paymentMethod.name.toLowerCase().includes("tarjeta")) {
-        //     return new Promise((resolve, reject) => {
-        //         this.dialogService.add(CardNumberModal, {
-        //             confirm: async (cardNumber) => {
-        //                 try {
-        //                     // Eliminar líneas de pago existentes
-        //                     const existingPaymentLines = currentOrder.get_paymentlines();
-        //                     existingPaymentLines.forEach((line) => {
-        //                         currentOrder.remove_paymentline(line);
-        //                     });
+        console.log("Método de pago seleccionado:", paymentMethod);
+        // Si es pago con tarjeta, mostrar el modal antes de procesar
+        if (paymentMethod.name.toLowerCase().includes("tarjeta")) {
+            return new Promise((resolve, reject) => {
+                this.dialogService.add(CardNumberModal, {
+                    confirm: async (cardNumber) => {
+                        try {
+                            // Eliminar líneas de pago existentes
+                            const existingPaymentLines = currentOrder.get_paymentlines();
+                            existingPaymentLines.forEach((line) => {
+                                currentOrder.remove_paymentline(line);
+                            });
 
-        //                     const newPaymentLine = await super.addNewPaymentLine(event);
+                            const newPaymentLine = await super.addNewPaymentLine(event);
 
-        //                     if (newPaymentLine) {
-        //                         newPaymentLine.card_number = cardNumber;
-        //                         currentOrder.set_to_invoice(true);
-        //                         this.render();
+                            if (newPaymentLine) {
+                                console.log("newPaymentLine")
+                                console.log("Número de tarjeta:", cardNumber);
+                                newPaymentLine.card_number = cardNumber;
+                                currentOrder.set_to_invoice(true);
+                                this.render();
 
-        //                         this.notification.add(
-        //                             "Pago con " + paymentMethod.name + " requiere facturación",
-        //                             {
-        //                                 type: "info",
-        //                             }
-        //                         );
-        //                     }
+                                this.notification.add(
+                                    "Pago con " + paymentMethod.name + " requiere facturación",
+                                    {
+                                        type: "info",
+                                    }
+                                );
+                            }
 
-        //                     resolve(newPaymentLine);
-        //                 } catch (error) {
-        //                     console.error("Error al procesar el pago:", error);
-        //                     this.notification.add("Error al procesar el pago", {
-        //                         type: "warning",
-        //                     });
-        //                     reject(error);
-        //                 }
-        //             },
-        //             close: () => {
-        //                 resolve(null);
-        //             },
-        //         });
-        //     });
-        // }
+                            resolve(newPaymentLine);
+                        } catch (error) {
+                            console.error("Error al procesar el pago:", error);
+                            this.notification.add("Error al procesar el pago", {
+                                type: "warning",
+                            });
+                            reject(error);
+                        }
+                    },
+                    close: () => {
+                        resolve(null);
+                    },
+                });
+            });
+        }
 
         // Eliminar líneas de pago existentes
         const existingPaymentLines = currentOrder.get_paymentlines();

@@ -11,12 +11,27 @@ _logger = logging.getLogger(__name__)
 
 class PosOrder(models.Model):
     _inherit = 'pos.order'
-
+    
+    numero_tarjeta = fields.Char(string="Número de Tarjeta")
     rollo_pdf = fields.Binary("PDF del Rollo", attachment=True)
     cuf = fields.Char("CUF", readonly=True)
     estado_factura = fields.Char("Estado Factura", readonly=True)
     account_move_id = fields.Many2one(
         'account.move', string='Factura Relacionada')
+
+    @api.model
+    def updateCardNumber(self, order_id, card_number):
+        order = self.browse(order_id)
+        if order:
+            order.numero_tarjeta = card_number
+            return True
+        return False
+
+
+    print("\n----------------------------------------")
+    print("Números de Tarjeta:")
+    print(numero_tarjeta)
+    print("----------------------------------------")
 
     def _send_invoice_to_api(self, invoice_data):
         """Envía los datos de la factura a la API"""
@@ -188,7 +203,7 @@ class PosOrder(models.Model):
                     "No se pudo obtener método de pago SIN, usando valor por defecto")
 
             if codigo_metodo_pago == 2:
-                numero_tarjeta = "00000001"
+                numero_tarjeta = self.numero_tarjeta or '00000001'
 
         return {
             'entidad': {
@@ -218,6 +233,11 @@ class PosOrder(models.Model):
 
         # Preparar datos de la factura
         invoice_data = self._prepare_invoice_data()
+
+        print("\n----------------------------------------")
+        print("Datos de la factura:")
+        print(json.dumps(invoice_data, indent=2))
+        print("----------------------------------------")
 
         try:
             # Enviar a la API

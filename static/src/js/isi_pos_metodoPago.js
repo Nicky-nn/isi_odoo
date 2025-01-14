@@ -36,7 +36,6 @@ patch(PaymentScreen.prototype, {
             return;
         }
 
-        console.log("Método de pago seleccionado:", paymentMethod);
         // Si es pago con tarjeta, mostrar el modal antes de procesar
         if (paymentMethod.name.toLowerCase().includes("tarjeta")) {
             return new Promise((resolve, reject) => {
@@ -44,22 +43,25 @@ patch(PaymentScreen.prototype, {
                     confirm: async (cardNumber) => {
                         try {
                             // Eliminar líneas de pago existentes
-                            const existingPaymentLines = currentOrder.get_paymentlines();
+                            const existingPaymentLines =
+                                currentOrder.get_paymentlines();
                             existingPaymentLines.forEach((line) => {
                                 currentOrder.remove_paymentline(line);
                             });
 
-                            const newPaymentLine = await super.addNewPaymentLine(event);
+                            const newPaymentLine =
+                                await super.addNewPaymentLine(event);
 
                             if (newPaymentLine) {
-                                console.log("newPaymentLine")
-                                console.log("Número de tarjeta:", cardNumber);
-                                newPaymentLine.card_number = cardNumber;
                                 currentOrder.set_to_invoice(true);
+                                const orderId = currentOrder.server_id;
+                                await this.savePhoneNumber(orderId, cardNumber);
                                 this.render();
 
                                 this.notification.add(
-                                    "Pago con " + paymentMethod.name + " requiere facturación",
+                                    "Pago con " +
+                                        paymentMethod.name +
+                                        " requiere facturación",
                                     {
                                         type: "info",
                                     }
@@ -223,6 +225,16 @@ patch(PaymentScreen.prototype, {
                 invoiceButton.classList.add("highlight", "checked");
                 invoiceButton.setAttribute("disabled", "disabled");
             }
+        }
+    },
+
+    async savePhoneNumber(orderId, cardNumber) {
+        try {
+            await this.orm.write("pos.order", [orderId], {
+                numero_tarjeta: cardNumber,
+            });
+        } catch (error) {
+            console.error("Error al guardar el número de teléfono:", error);
         }
     },
 });

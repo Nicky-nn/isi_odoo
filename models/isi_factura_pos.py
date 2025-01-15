@@ -67,6 +67,9 @@ class PosOrder(models.Model):
         }
         """
 
+        if not self.to_invoice:
+            return
+
         try:
             response = requests.post(
                 api_url,
@@ -203,7 +206,7 @@ class PosOrder(models.Model):
                     "No se pudo obtener método de pago SIN, usando valor por defecto")
 
             if codigo_metodo_pago == 2:
-                numero_tarjeta = self.numero_tarjeta or '00000001'
+                numero_tarjeta = self.numero_tarjeta or ''
 
         return {
             'entidad': {
@@ -231,15 +234,19 @@ class PosOrder(models.Model):
         print("Iniciando proceso de facturación")
         print("----------------------------------------")
 
-        # Preparar datos de la factura
-        invoice_data = self._prepare_invoice_data()
-
-        print("\n----------------------------------------")
-        print("Datos de la factura:")
-        print(json.dumps(invoice_data, indent=2))
-        print("----------------------------------------")
+        
+        # Si no es para facturar, seguimos el comportamiento estándar de Odoo
+        if not self.to_invoice:
+            return super(PosOrder, self).action_pos_order_paid()
 
         try:
+            # Preparar datos de la factura
+            invoice_data = self._prepare_invoice_data()
+
+            print("\n----------------------------------------")
+            print("Datos de la factura:")
+            print(json.dumps(invoice_data, indent=2))
+            print("----------------------------------------")
             # Enviar a la API
             response = self._send_invoice_to_api(invoice_data)
 
@@ -359,9 +366,14 @@ class PosOrder(models.Model):
         return new_move
 
     def _prepare_account_move_data(self, response_data):
+
+        if not self.to_invoice:
+            return
+            
         """Prepara los datos completos para crear o actualizar el account.move, incluyendo líneas de productos"""
         result = response_data.get('data', {}).get('facturaCompraVentaCreate', {})
         representacion_grafica = result.get('representacionGrafica', {})
+        
         
         
         # Preparar líneas de factura
@@ -421,8 +433,7 @@ class PosOrder(models.Model):
             'sin_url': representacion_grafica.get('sin'),
             'rollo_url': representacion_grafica.get('rollo'),
             'xml_url': representacion_grafica.get('xml'),
-            'numero_tarjeta': self.payment_ids and self.payment_ids[0].payment_method_id.metodo_pago_sin == '2' and '00000001' or False,
-
+            'numero_tarjeta': self.payment_ids and self.payment_ids[0].payment_method_id.metodo_pago_sin == '2' and self.numero_tarjeta or False,
             # Campos adicionales de control
             'permitir_nit_invalido': False,
             'additional_discount': 0,

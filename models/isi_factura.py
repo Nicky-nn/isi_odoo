@@ -412,6 +412,10 @@ class AccountMove(models.Model):
             if 'errors' in data:
                 error_message = json.dumps(data['errors'], indent=2)
                 self._log_api_error(f"Error al enviar la factura a la API: {error_message}")
+                self.state = 'draft'
+                self.sequence_prefix = ''
+                self.name = 'BORRADOR'
+
                 return False
 
             # Procesar la respuesta exitosa

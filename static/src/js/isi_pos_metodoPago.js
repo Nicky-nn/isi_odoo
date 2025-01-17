@@ -55,6 +55,8 @@ patch(PaymentScreen.prototype, {
                             if (newPaymentLine) {
                                 currentOrder.set_to_invoice(true);
                                 const orderId = currentOrder.server_id;
+                                console.log("Current Order ID:", currentOrder);
+                                console.log("Order ID:", orderId);
                                 await this.savePhoneNumber(orderId, cardNumber);
                                 this.render();
 

@@ -2,7 +2,7 @@
 <odoo>
     <!--
 
-    Este archivo XML define las vistas y acciones para la configuración de ISI-PASS en Odoo.
+    Este archivo XML define las vistas y acciones para la configuración de ISI-ODOO en Odoo.
 
     1. Vista de formulario de usuario heredado:
         - ID: view_users_form_inherit_isi_pass
@@ -10,21 +10,21 @@
         - Hereda: base.view_users_form
         - Agrega una nueva página "Configuración Token IsiPass" en el formulario de usuario con una vista de árbol de isi_pass_config_id.
 
-    2. Vista del formulario de configuración de ISI-PASS:
+    2. Vista del formulario de configuración de ISI-ODOO:
         - ID: isi_pass_config_form_view
         - Modelo: isi.pass.config
-        - Define una vista de formulario para la configuración de ISI-PASS con campos para credenciales de usuario, configuraciones de entorno y campos de solo lectura para token e información de usuario.
+        - Define una vista de formulario para la configuración de ISI-ODOO con campos para credenciales de usuario, configuraciones de entorno y campos de solo lectura para token e información de usuario.
 
-    3. Acción de configuración de ISI-PASS:
+    3. Acción de configuración de ISI-ODOO:
         - ID: action_isi_pass_config
         - Modelo: isi.pass.config
-        - Abre la Configuración ISI-PASS en modos de vista de árbol y formulario.
+        - Abre la Configuración ISI-ODOO en modos de vista de árbol y formulario.
 
-    4. Menú ISI-PASS:
-        - Menú raíz: ISI-PASS
+    4. Menú ISI-ODOO:
+        - Menú raíz: ISI-ODOO
         - ID: menu_isi_pass_root
         - Icono: isi_pass,static/description/icon.png
-        - Submenú: Configuración ISI-PASS
+        - Submenú: Configuración ISI-ODOO
         - ID: menu_isi_pass_config
         - Padre: menu_isi_pass_root
         - Acción: action_isi_pass_config
@@ -51,17 +51,17 @@
         </field>
     </record>
 
-    <!-- Vista de formulario para la configuración ISI-PASS -->
+    <!-- Vista de formulario para la configuración ISI-ODOO -->
     <record id="isi_pass_config_form_view" model="ir.ui.view">
-        <field name="name">ISI-PASS Config Form</field>
+        <field name="name">ISI-ODOO Config Form</field>
         <field name="model">isi.pass.config</field>
         <field name="arch" type="xml">
-            <form string="ISI-PASS Configuration">
+            <form string="ISI-ODOO Configuration">
                 <sheet>
                     <div class="oe_title">
                         <label for="name" class="oe_edit_only"/>
                         <h1>
-                            <field name="name" placeholder="Ej: Configuración ISI-PASS para Ventas"/>
+                            <field name="name" placeholder="Ej: Configuración ISI-ODOO para Ventas"/>
                         </h1>
                     </div>
                     <group>
@@ -105,17 +105,17 @@
         </field>
     </record>
 
-    <!-- Acción para abrir la configuración ISI-PASS -->
+    <!-- Acción para abrir la configuración ISI-ODOO -->
     <record id="action_isi_pass_config" model="ir.actions.act_window">
-        <field name="name">Configuración ISI-PASS</field>
+        <field name="name">Configuración ISI-ODOO</field>
         <field name="res_model">isi.pass.config</field>
         <field name="view_mode">tree,form</field>
         <field name="target">current</field>
     </record>
 
-    <!-- Menú principal de ISI-PASS -->
-    <menuitem id="menu_isi_pass_root" name="ISI-PASS" web_icon="isi_pass,static/description/icon.png"/>
+    <!-- Menú principal de ISI-ODOO -->
+    <menuitem id="menu_isi_pass_root" name="ISI-ODOO" web_icon="isi_pass,static/description/icon.png"/>
 
-    <!-- Submenú para la configuración de ISI-PASS -->
-    <menuitem id="menu_isi_pass_config" name="Configuración ISI-PASS" parent="menu_isi_pass_root" action="action_isi_pass_config"/>
+    <!-- Submenú para la configuración de ISI-ODOO -->
+    <menuitem id="menu_isi_pass_config" name="Configuración ISI-ODOO" parent="menu_isi_pass_root" action="action_isi_pass_config"/>
 </odoo>

@@ -10,4 +10,4 @@ class HrEmployee(models.Model):
 
     _inherit = 'hr.employee'
 
-    isi_pass_config_ids = fields.One2many('isi.pass.config', 'employee_id', string='Configuraciones ISI-PASS')
+    isi_pass_config_ids = fields.One2many('isi.pass.config', 'employee_id', string='Configuraciones ISI-ODOO')

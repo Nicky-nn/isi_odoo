@@ -9,3 +9,4 @@ models/__pycache__/__init__.cpython-312.pyc
 .gitignore
 .git
 task
+*/__pycache__/*

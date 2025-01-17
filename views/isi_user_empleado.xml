@@ -2,15 +2,15 @@
 <odoo>
     <!--
 
-Este archivo XML define una vista personalizada para el módulo Odoo HR Employee. Hereda la vista predeterminada del formulario de empleado y agrega una nueva página titulada "Configuraciones ISI-PASS" dentro de la sección del cuaderno. 
+Este archivo XML define una vista personalizada para el módulo Odoo HR Employee. Hereda la vista predeterminada del formulario de empleado y agrega una nueva página titulada "Configuraciones ISI-ODOO" dentro de la sección del cuaderno. 
 
-La nueva página incluye una vista de árbol y una vista de formulario para el campo `isi_pass_config_ids`, que está asociado con varias configuraciones de ISI-PASS. 
+La nueva página incluye una vista de árbol y una vista de formulario para el campo `isi_pass_config_ids`, que está asociado con varias configuraciones de ISI-ODOO. 
 
 La vista del formulario se divide en dos columnas:
-1. La primera columna contiene campos para ingresar detalles de configuración de ISI-PASS, como nombre, entorno, URL de API, URL de tienda, correo electrónico y contraseña. También incluye un botón para iniciar una acción de inicio de sesión.
-2. La segunda columna contiene campos de solo lectura que muestran diversa información relacionada con ISI-PASS, como tokens, detalles del usuario e información de la empresa.
+1. La primera columna contiene campos para ingresar detalles de configuración de ISI-ODOO, como nombre, entorno, URL de API, URL de tienda, correo electrónico y contraseña. También incluye un botón para iniciar una acción de inicio de sesión.
+2. La segunda columna contiene campos de solo lectura que muestran diversa información relacionada con ISI-ODOO, como tokens, detalles del usuario e información de la empresa.
 
-Esta personalización permite a los usuarios administrar configuraciones de ISI-PASS directamente desde la vista del formulario de empleado en Odoo.
+Esta personalización permite a los usuarios administrar configuraciones de ISI-ODOO directamente desde la vista del formulario de empleado en Odoo.
 -->
     <record id="view_employee_form_inherit_isi_pass" model="ir.ui.view">
         <field name="name">hr.employee.form.inherit.isi.pass</field>
@@ -18,7 +18,7 @@ Esta personalización permite a los usuarios administrar configuraciones de ISI-
         <field name="inherit_id" ref="hr.view_employee_form"/>
         <field name="arch" type="xml">
             <notebook position="inside">
-                <page string="Configuraciones ISI-PASS">
+                <page string="Configuraciones ISI-ODOO">
                     <field name="isi_pass_config_ids" context="{'default_employee_id': id}">
                         <tree>
                             <field name="name"/>

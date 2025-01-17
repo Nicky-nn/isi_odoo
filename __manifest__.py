@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "isi-odoo",
+    'name': "isi-odoo-beta",
 
     'summary': "Conexión a la API de ISI_INVOICE para la facturación con SIAT",
 
@@ -12,7 +12,7 @@
     'website': "https://integrate.com.bo/",
 
     'category': 'Point of Sale',
-    'version': '1.0.2',
+    'version': '1.1.0',
 
     'depends': ['base', 'product', 'account', 'account_payment', 'sale', 'point_of_sale', 'hr'],
 
@@ -43,4 +43,5 @@
     ],
     'installable': True,
     'application': True,
+    "images": ["static/description/banner.png"],
 }

@@ -7,7 +7,7 @@ from odoo.exceptions import UserError
 
 # State: Completed
 class ISIPassConfig(models.Model):
-    # Modelo que almacena la configuración de ISI-PASS para un usuario.
+    # Modelo que almacena la configuración de ISI-ODOO para un usuario.
     # Contiene campos para almacenar credenciales de inicio de sesión y datos de perfil.
 
     # Atributos:
@@ -31,12 +31,12 @@ class ISIPassConfig(models.Model):
     # - _compute_avatar(): Calcula la URL del avatar del usuario.
     # - _compute_token_display(): Calcula la parte visible del token.
     # - _compute_refresh_token_display(): Calcula la parte visible del token de actualización.
-    # - get_config(user_id): Obtiene la configuración de ISI-PASS para un usuario.
+    # - get_config(user_id): Obtiene la configuración de ISI-ODOO para un usuario.
     # - execute_login_mutation(): Ejecuta la mutación de inicio de sesión en la API.
     # - login(): Inicia sesión en la API y actualiza los campos de perfil.
 
     _name = 'isi.pass.config'
-    _description = 'Configuración de ISI-PASS'
+    _description = 'Configuración de ISI-ODOO'
 
     # Campos como antes
     user_id = fields.Many2one(
@@ -244,8 +244,8 @@ class ISIPassConfig(models.Model):
 class ResUsers(models.Model):
 
     # Atributos:
-    # - isi_pass_config_id: Campo de relación para almacenar la configuración ISI-PASS del usuario.
+    # - isi_pass_config_id: Campo de relación para almacenar la configuración ISI-ODOO del usuario.
 
     _inherit = 'res.users'
     isi_pass_config_id = fields.One2many(
-        'isi.pass.config', 'user_id', string='Configuración ISI-PASS')
+        'isi.pass.config', 'user_id', string='Configuración ISI-ODOO')

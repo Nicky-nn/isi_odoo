@@ -8,10 +8,10 @@
 
 # class ISIPassConfig(models.Model):
 #     _name = 'isi.pass.config'
-#     _description = 'Configuración de ISI-PASS'
+#     _description = 'Configuración de ISI-ODOO'
 
 #     name = fields.Char(
-#         'Nombre', default='Configuración ISI-PASS', required=True)
+#         'Nombre', default='Configuración ISI-ODOO', required=True)
 #     environment = fields.Selection([
 #         ('sandbox', 'Sandbox'),
 #         ('production', 'Producción')
@@ -83,7 +83,7 @@
 #         config = self.search([], limit=1)
 #         if not config:
 #             config = self.create({
-#                 'name': 'Configuración ISI-PASS',
+#                 'name': 'Configuración ISI-ODOO',
 #                 'shop_url': 'https://mitienda.com',
 #                 'email': 'ejemplo@email.com',
 #                 'password': 'contraseña_segura'

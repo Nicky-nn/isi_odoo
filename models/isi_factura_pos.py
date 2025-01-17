@@ -30,7 +30,6 @@ class PosOrder(models.Model):
 
     print("\n----------------------------------------")
     print("Números de Tarjeta:")
-    print(numero_tarjeta)
     print("----------------------------------------")
 
     def _send_invoice_to_api(self, invoice_data):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "isi-odoo-beta",
+    'name': "isi-odoo",
 
     'summary': "Conexión a la API de ISI_INVOICE para la facturación con SIAT",
 

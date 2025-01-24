@@ -36,6 +36,10 @@ class POSPaymentMethod(models.Model):
         help="Si está marcado, las ventas con este método de pago requerirán facturación obligatoria"
     )
 
+        # Revisamos q is_online_payment exista en el modelo, y si no, lo creamos
+    if 'is_online_payment' not in locals():
+        is_online_payment = fields.Boolean(string='Pago en línea', default=False)
+
     @api.model
     def _get_api_config(self):
         self.env.cr.execute("""

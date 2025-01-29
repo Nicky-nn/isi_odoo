@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "isi-odoo-v2",
+    'name': "isi-odoo",
 
     'summary': "Conexión a la API de ISI_INVOICE para la facturación con SIAT",
 
@@ -45,4 +45,5 @@
     'installable': True,
     'application': True,
     "images": ["static/description/banner.png"],
+    'license': 'OPL-1',
 }

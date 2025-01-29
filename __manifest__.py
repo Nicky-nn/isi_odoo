@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "isi-odoo",
+    'name': "isi-odoo-v2",
 
     'summary': "Conexión a la API de ISI_INVOICE para la facturación con SIAT",
 
@@ -32,6 +32,7 @@
         'views/isi_pos_cliente.xml',
         'views/pos.xml',
         'views/isi_diarios.xml',
+        'views/isi_sucursal_pos.xml',
     ],
     "assets": {
         'point_of_sale._assets_pos': [

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- <data>
+        <template id="pos_chrome_extension" inherit_id="point_of_sale.Chrome">
+            <xpath expr="//div[hasclass('cashier-name')]" position="after">
+                <div class="btn btn-light border-0 rounded-0" t-on-click="onClickBranch">
+                    <span class="branch-name d-flex align-items-center gap-1">
+                        <i class="fa fa-building"/>
+                        <span class="branch-text">Sucursal</span>
+                    </span>
+                </div>
+            </xpath>
+        </template>
+    </data> -->
+</odoo>

@@ -26,12 +26,7 @@ class PosOrder(models.Model):
             order.numero_tarjeta = card_number
             return True
         return False
-
-
-    print("\n----------------------------------------")
-    print("Números de Tarjeta:")
-    print("----------------------------------------")
-
+    
     def _send_invoice_to_api(self, invoice_data):
         """Envía los datos de la factura a la API"""
         token, api_url = self._get_api_config()
@@ -190,7 +185,7 @@ class PosOrder(models.Model):
             except Exception as e:
                 _logger.error(f"Error procesando producto: {str(e)}")
 
-        actividad_economica = "620000"
+        actividad_economica = self.lines[0].product_id.codigo_producto_homologado.split(' - ')[0]
 
         numero_tarjeta = None
         codigo_metodo_pago = 1

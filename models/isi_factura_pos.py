@@ -11,7 +11,7 @@ _logger = logging.getLogger(__name__)
 
 class PosOrder(models.Model):
     _inherit = 'pos.order'
-    
+
     numero_tarjeta = fields.Char(string="Número de Tarjeta")
     rollo_pdf = fields.Binary("PDF del Rollo", attachment=True)
     cuf = fields.Char("CUF", readonly=True)
@@ -26,13 +26,18 @@ class PosOrder(models.Model):
             order.numero_tarjeta = card_number
             return True
         return False
+
     
     def _send_invoice_to_api(self, invoice_data):
         """Envía los datos de la factura a la API"""
         token, api_url = self._get_api_config()
 
         if not token or not api_url:
-            raise ValueError("Configuración de API no encontrada")
+            error_message = "Configuración de API no encontrada"
+            self._broadcast_api_response({
+                'errors': [{'message': error_message}]
+            })
+            raise ValueError(error_message)
 
         headers = {
             'Authorization': f'Bearer {token}',
@@ -70,56 +75,91 @@ class PosOrder(models.Model):
                 json={
                     'query': query,
                     'variables': {
+                        'entidad': invoice_data.get('entidad', {}),
                         'input': invoice_data['input']
                     }
                 },
                 headers=headers
             )
+            
+            # Log completo para debugging
             print("\n----------------------------------------")
-            print("Respuesta de la API 1:")
-            print(json.dumps(response.json(), indent=2))
+            print("Respuesta de la API:")
+            response_json = response.json()
+            print(json.dumps(response_json, indent=2))
             print("----------------------------------------")
+            
+            # Enviar respuesta al cliente POS
+            self._broadcast_api_response(response_json)
+            
             response.raise_for_status()
 
-            # Enviar la respuesta al bus de Odoo
-            self.env['bus.bus']._sendone(
-                self.env.user.partner_id, 
-                'api_response_channel', 
-                {
-                    'type': 'api_response',
-                    'payload': response.json()
-                }
-            )
-        
-
-            # Parsear los datos de la respuesta
-            data = response.json()
-
             # Verificar errores en la respuesta y registrarlos
-            if 'errors' in data:
-                error_message = json.dumps(data['errors'], indent=2)
-                self._log_api_error(f"Error al enviar la factura a la API: {error_message}")
-
-                # Mostrar en consola el error detallado
+            if 'errors' in response_json:
+                error_message = json.dumps(response_json['errors'], indent=2)
                 print("\n----------------------------------------")
-                print("Error en la respuesta de la API:")
-                print(json.dumps(data, indent=2))
+                print(f"Error en la API: {error_message}")
                 print("----------------------------------------")
-
                 raise ValueError(f"Error en la respuesta de la API: {error_message}")
 
-            return data
+            return response_json
 
         except requests.exceptions.RequestException as e:
             _logger.error(f"Error en la llamada a la API: {str(e)}")
-
-            # Mostrar en consola los detalles de la excepción
-            print("\n----------------------------------------")
-            print("Error en la llamada a la API:")
-            print(f"Detalles del error: {str(e)}")
-            print("----------------------------------------")
-
+            
+            # Preparar mensaje de error
+            error_response = {
+                'errors': [{'message': f"Error en la comunicación con la API: {str(e)}"}]
+            }
+            
+            # Enviar error al cliente POS
+            self._broadcast_api_response(error_response)
+            
             raise
+
+
+    def _broadcast_api_response(self, response):
+        """
+        Envía la respuesta de la API a todos los clientes conectados.
+        Funciona tanto en Community como en Enterprise.
+        """
+        try:
+            # Preparar el mensaje
+            message = {
+                'type': 'api_response',
+                'payload': response,
+                'order_id': self.id,
+                'timestamp': fields.Datetime.now().isoformat()
+            }
+            
+            # Registrar en el log para depuración
+            _logger.info(f"Enviando mensaje al bus: {json.dumps(message, default=str)}")
+            
+            # Método que funciona tanto en Community como Enterprise
+            self.env['bus.bus']._sendone(
+                'api_response_channel',  # Canal general para todos los usuarios
+                message
+            )
+            
+            # Si también queremos enviar específicamente al usuario actual
+            if hasattr(self, 'user_id') and self.user_id:
+                self.env['bus.bus']._sendone(
+                    self.user_id.partner_id,
+                    'api_response_channel', 
+                    message
+                )
+            else:
+                self.env['bus.bus']._sendone(
+                    self.env.user.partner_id,
+                    'api_response_channel', 
+                    message
+                )
+                
+            _logger.info("Mensaje enviado correctamente al bus")
+            
+        except Exception as e:
+            _logger.error(f"Error al enviar mensaje al bus: {str(e)}")
+            print(f"\nError al enviar mensaje al bus: {str(e)}")
 
     def _check_pdf_content(self):
         """Verifica si el contenido del PDF es válido"""
@@ -142,7 +182,8 @@ class PosOrder(models.Model):
             _logger.info(f"PDF válido para la orden: {self.id}")
             return True
         except Exception as e:
-            _logger.error(f"Error al verificar el PDF para la orden {self.id}: {str(e)}")
+            _logger.error(
+                f"Error al verificar el PDF para la orden {self.id}: {str(e)}")
             return False
 
     def _prepare_invoice_data(self):
@@ -185,7 +226,8 @@ class PosOrder(models.Model):
             except Exception as e:
                 _logger.error(f"Error procesando producto: {str(e)}")
 
-        actividad_economica = self.lines[0].product_id.codigo_producto_homologado.split(' - ')[0]
+        actividad_economica = self.lines[0].product_id.codigo_producto_homologado.split(
+            ' - ')[0]
 
         numero_tarjeta = None
         codigo_metodo_pago = 1
@@ -198,6 +240,7 @@ class PosOrder(models.Model):
             except:
                 _logger.warning(
                     "No se pudo obtener método de pago SIN, usando valor por defecto")
+                codigo_metodo_pago = 1
 
             if codigo_metodo_pago == 2:
                 numero_tarjeta = self.numero_tarjeta or ''
@@ -221,14 +264,12 @@ class PosOrder(models.Model):
             }
         }
 
-    
-
     def action_pos_order_paid(self):
+        """Método sobrescrito para manejar pagos y facturación"""
         print("\n----------------------------------------")
         print("Iniciando proceso de facturación")
         print("----------------------------------------")
 
-        
         # Si no es para facturar, seguimos el comportamiento estándar de Odoo
         if not self.to_invoice:
             return super(PosOrder, self).action_pos_order_paid()
@@ -241,66 +282,68 @@ class PosOrder(models.Model):
             print("Datos de la factura:")
             print(json.dumps(invoice_data, indent=2))
             print("----------------------------------------")
+            
             # Enviar a la API
             response = self._send_invoice_to_api(invoice_data)
 
             # Verificar si hay errores en la respuesta
-            if 'errors' in response:
-                error_message = response['errors'][0]['message']
+            if response and 'errors' in response:
+                error_message = response['errors'][0]['message'] if response['errors'] else "Error desconocido"
                 print("\n----------------------------------------")
                 print(f"Error en la API: {error_message}")
                 print("La orden NO será marcada como pagada")
                 print("----------------------------------------")
-                
+
+                # Enviar error al cliente POS si no se envió ya
+                self._broadcast_api_response({
+                    'errors': [{'message': error_message}]
+                })
+
                 # No marcamos la orden como pagada y lanzamos el error
                 raise ValueError(f"Error en la respuesta de la API: {error_message}")
 
-            if response.get('data', {}).get('facturaCompraVentaCreate'):
+            if response and response.get('data', {}).get('facturaCompraVentaCreate'):
                 result = response['data']['facturaCompraVentaCreate']
 
                 # Preparar y crear/actualizar account.move
                 account_move_data = self._prepare_account_move_data(response)
                 account_move = self._create_or_update_account_move(account_move_data)
 
-                # Guardar el PDF del rollo si está disponible
-                if result.get('representacionGrafica', {}).get('rollo'):
-                    rollo_url = result['representacionGrafica']['rollo']
-                    # try:
-                    #     # Descargar el PDF desde la URL
-                    #     pdf_response = requests.get(rollo_url)
-                    #     if pdf_response.status_code == 200:
-                    #         # Convertir el contenido a base64
-                    #         pdf_base64 = base64.b64encode(pdf_response.content).decode('utf-8')
-                    #         self.write({
-                    #             'rollo_pdf': pdf_base64,
-                    #             'cuf': result.get('cuf'),
-                    #             'estado_factura': result.get('state')
-                    #         })
-                    #         _logger.info(f"PDF del rollo descargado y guardado exitosamente para la orden {self.id}")
-                    #     else:
-                    #         _logger.warning(f"No se pudo descargar el PDF del rollo para la orden {self.id}. Status code: {pdf_response.status_code}")
-                    # except Exception as e:
-                    #     _logger.error(f"Error al descargar el PDF del rollo para la orden {self.id}: {str(e)}")
+                # Guardar datos relevantes en la orden
+                self.write({
+                    'cuf': result.get('cuf'),
+                    'estado_factura': result.get('state'),
+                    'account_move_id': account_move.id,
+                    'state': 'paid'  # Marcar como pagada
+                })
 
                 print("\n----------------------------------------")
                 print("Factura procesada exitosamente")
                 print(f"CUF: {result.get('cuf')}")
                 print(f"Estado: {result.get('state')}")
-                print("----------------------------------------")
-
-                # Solo marcamos como pagado si todo el proceso fue exitoso
-                self.write({'state': 'paid'})
-                print("\nOrden marcada como pagada")
+                print("Orden marcada como pagada")
                 print("----------------------------------------\n")
-                
+
+                # Comunicar éxito (por si acaso, aunque ya debería estar enviado)
+                self._broadcast_api_response(response)
+
                 return True
 
             else:
-                error_msg = "Respuesta de API inválida"
+                error_msg = "Respuesta de API inválida o vacía"
                 print("\n----------------------------------------")
                 print("Error desconocido al procesar la factura:")
-                print(json.dumps(response, indent=2))
+                if response:
+                    print(json.dumps(response, indent=2))
+                else:
+                    print("No se recibió respuesta")
                 print("----------------------------------------")
+                
+                # Enviar error al cliente POS
+                self._broadcast_api_response({
+                    'errors': [{'message': error_msg}]
+                })
+                
                 raise ValueError(f"Error en la respuesta de la API: {error_msg}")
 
         except Exception as e:
@@ -310,6 +353,12 @@ class PosOrder(models.Model):
             print(f"Detalles del error: {str(e)}")
             print("La orden NO será marcada como pagada")
             print("----------------------------------------")
+            
+            # Enviar error al cliente POS
+            self._broadcast_api_response({
+                'errors': [{'message': str(e)}]
+            })
+            
             raise
 
     @api.model
@@ -322,9 +371,6 @@ class PosOrder(models.Model):
         """, (self.env.user.id,))
         result = self.env.cr.fetchone()
         return result if result else (None, None)
-    
-
-
 
     def _create_or_update_account_move(self, invoice_data):
         """Crea o actualiza el registro en account.move"""
@@ -337,7 +383,7 @@ class PosOrder(models.Model):
 
         # Aseguramos que el estado inicial sea 'draft'
         invoice_data['state'] = 'draft'
-        
+
         # Si no existe, creamos una nueva
         invoice_data.update({
             'move_type': 'out_invoice',
@@ -348,7 +394,7 @@ class PosOrder(models.Model):
         })
 
         new_move = AccountMove.create(invoice_data)
-        
+
         # Después de crear la factura, la publicamos
         try:
             new_move.action_post()
@@ -363,13 +409,12 @@ class PosOrder(models.Model):
 
         if not self.to_invoice:
             return
-            
+
         """Prepara los datos completos para crear o actualizar el account.move, incluyendo líneas de productos"""
-        result = response_data.get('data', {}).get('facturaCompraVentaCreate', {})
+        result = response_data.get('data', {}).get(
+            'facturaCompraVentaCreate', {})
         representacion_grafica = result.get('representacionGrafica', {})
-        
-        
-        
+
         # Preparar líneas de factura
         invoice_lines = []
         for line in self.lines:
@@ -401,7 +446,7 @@ class PosOrder(models.Model):
             'invoice_date': self.date_order.date(),
             'date': self.date_order.date(),
             'invoice_date_due': self.date_order.date(),
-            
+
             # Campos de montos
             'amount_untaxed': self.amount_total - self.amount_tax,
             'amount_tax': self.amount_tax,
@@ -434,7 +479,7 @@ class PosOrder(models.Model):
             'gift_card_amount': 0,
             'custom_subtotal': self.amount_total - self.amount_tax,
             'custom_total': self.amount_total,
-            
+
             # Líneas de factura
             'invoice_line_ids': invoice_lines,
             'payment_state': 'paid',
@@ -442,7 +487,7 @@ class PosOrder(models.Model):
             # colocamos como publicado para que no se pueda modificar y tambien pagado
             'payment_state': 'paid',
 
-            
+
         }
 
 
@@ -453,11 +498,13 @@ class PosOrderController(http.Controller):
         try:
             order = request.env['pos.order'].sudo().browse(order_id)
             if not order or not order.rollo_pdf:
-                _logger.warning(f"PDF del rollo no encontrado para la orden: {order_id}")
+                _logger.warning(
+                    f"PDF del rollo no encontrado para la orden: {order_id}")
                 return request.not_found()
 
             if not order._check_pdf_content():
-                _logger.warning(f"El contenido del PDF no es válido para la orden: {order_id}")
+                _logger.warning(
+                    f"El contenido del PDF no es válido para la orden: {order_id}")
                 return request.not_found()
 
             pdf_data = base64.b64decode(order.rollo_pdf)
@@ -472,5 +519,6 @@ class PosOrderController(http.Controller):
             return request.make_response(pdf_data, headers=headers)
 
         except Exception as e:
-            _logger.error(f"Error al descargar el rollo para la orden {order_id}: {str(e)}", exc_info=True)
+            _logger.error(
+                f"Error al descargar el rollo para la orden {order_id}: {str(e)}", exc_info=True)
             return request.not_found()

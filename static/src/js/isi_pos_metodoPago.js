@@ -9,7 +9,17 @@ patch(PaymentScreen.prototype, {
         super.setup();
         this.notification = useService("notification");
         this.dialogService = useService("dialog");
+        this.orm = useService("orm"); // Add this line to initialize orm
         this.allowSiatCustomer = this.pos.config.allow_siat_customer;
+    },
+
+    // Add this computed property
+    get paymentMethodRequiresInvoice() {
+        const order = this.currentOrder;
+        if (!order || !order.selected_paymentline) return false;
+
+        const paymentMethod = order.selected_paymentline.payment_method;
+        return paymentMethod && paymentMethod.facturacion_obligatoria;
     },
 
     /**

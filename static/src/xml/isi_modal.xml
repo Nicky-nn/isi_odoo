@@ -1,65 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<templates xml:space="preserve">
-    <t t-name="api_bus.ApiResponsePopup">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <!-- Header simplificado -->
-                <div class="modal-header border-0 justify-content-end">
-                    <button type="button" class="btn-close" t-on-click="props.close"/>
-                </div>
-
-                <!-- Body con ícono grande y mensaje -->
-                <div class="modal-body text-center pb-4">
-                    <!-- Icono grande de éxito/error -->
-                    <div t-if="props.type === 'success'" class="text-success mb-4">
-                        <i class="fa fa-check-circle fa-5x"></i>
-                    </div>
-                    <div t-if="props.type === 'error'" class="text-danger mb-4">
-                        <i class="fa fa-times-circle fa-5x"></i>
-                    </div>
-
-                    <!-- Título y mensaje -->
-                    <h4 class="mb-3"><t t-esc="props.title"/></h4>
-                    <p class="text-muted"><t t-esc="props.body"/></p>
-                    
-                    <!-- Botones de descarga si es éxito -->
-                    <t t-if="props.type === 'success' and props.urls">
-                        <div class="mt-4">
-                            <div class="d-flex justify-content-center gap-2">
-                                <button t-if="props.urls.pdf" type="button" 
-                                        class="btn btn-outline-secondary" 
-                                        t-on-click="() => this.openUrl(props.urls.pdf)">
-                                    <i class="fa fa-file-pdf me-2"></i>PDF
-                                </button>
-                                <button t-if="props.urls.rollo" type="button" 
-                                        class="btn btn-outline-secondary" 
-                                        t-on-click="() => this.openUrl(props.urls.rollo)">
-                                    <i class="fa fa-file me-2"></i>Rollo
-                                </button>
-                                <button t-if="props.urls.sin" type="button" 
-                                        class="btn btn-outline-secondary" 
-                                        t-on-click="() => this.openUrl(props.urls.sin)">
-                                    <i class="fa fa-file-alt me-2"></i>SIN
-                                </button>
-                                <button t-if="props.urls.xml" type="button" 
-                                        class="btn btn-outline-secondary" 
-                                        t-on-click="() => this.openUrl(props.urls.xml)">
-                                    <i class="fa fa-file-code me-2"></i>XML
-                                </button>
-                            </div>
-                        </div>
-                    </t>
-                </div>
-
-                <!-- Footer con botón de cerrar -->
-                <div class="modal-footer border-0 justify-content-center pb-4">
-                    <button type="button" 
-                            t-attf-class="btn #{props.type === 'error' ? 'btn-danger' : 'btn-success'}" 
-                            t-on-click="props.close">
-                        Aceptar
-                    </button>
-                </div>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_order_success_modal" owl="1">
+        <Dialog title="props.title || '¡Orden Confirmada!'">
+            <p>
+                La orden <t t-esc="props.orderName"/> ha sido registrada con éxito.
+                <t t-if="props.isInvoice">
+                    <br/>La factura será generada.
+                </t>
+            </p>
+            <div class="text-center mt-4">
+                <button class="btn btn-primary" t-on-click="confirm">
+                    Aceptar
+                </button>
             </div>
-        </div>
+        </Dialog>
     </t>
 </templates>

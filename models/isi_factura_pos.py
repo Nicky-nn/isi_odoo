@@ -1,524 +1,438 @@
+# -*- coding: utf-8 -*-
 import random
-from odoo import models, fields, api, http
-from odoo.http import request
-import requests
-import base64
-import logging
+import requests # Asegúrate de que 'requests' esté instalado en tu entorno Odoo
 import json
+import logging
+
+from odoo import models, fields, api, _ # Añadir _ para traducciones/mensajes
+from odoo.exceptions import UserError # Para mostrar errores al usuario si es necesario
 
 _logger = logging.getLogger(__name__)
-
 
 class PosOrder(models.Model):
     _inherit = 'pos.order'
 
-    numero_tarjeta = fields.Char(string="Número de Tarjeta")
-    rollo_pdf = fields.Binary("PDF del Rollo", attachment=True)
-    cuf = fields.Char("CUF", readonly=True)
-    estado_factura = fields.Char("Estado Factura", readonly=True)
-    account_move_id = fields.Many2one(
-        'account.move', string='Factura Relacionada')
+    # 1. Campo existente para almacenar el número de tarjeta temporalmente
+    temporary_card_number = fields.Char(
+        string="Número de Tarjeta Temporal",
+        readonly=True,
+        copy=False, # No copiar este campo al duplicar la orden
+        help="Número de tarjeta ingresado en el POS para pagos con tarjeta."
+    )
+
+    # Campo para almacenar la respuesta de la API (opcional, pero útil para debugging/historial)
+    invoice_api_response = fields.Text(string="Respuesta API Facturación", readonly=True, copy=False)
+    invoice_pdf_url = fields.Char(string="URL PDF Factura", readonly=True, copy=False)
+    invoice_xml_url = fields.Char(string="URL XML Factura", readonly=True, copy=False)
+    invoice_sin_url = fields.Char(string="URL SIN Factura", readonly=True, copy=False)
+    invoice_rollo_url = fields.Char(string="URL Rollo Factura", readonly=True, copy=False)
+
+    # 2. Indicar a Odoo que lea este campo desde el JSON del POS
+    @api.model
+    def _order_fields(self, ui_order):
+        fields_to_include = super(PosOrder, self)._order_fields(ui_order)
+        # Asegúrate de que el nombre 'temporary_card_number' coincida EXACTAMENTE
+        # con la clave usada en export_as_JSON en el lado del POS (main.js)
+        fields_to_include['temporary_card_number'] = ui_order.get('temporary_card_number')
+        return fields_to_include
+
+    # --- Métodos para obtener configuración de la API ---
 
     @api.model
-    def updateCardNumber(self, order_id, card_number):
-        order = self.browse(order_id)
-        if order:
-            order.numero_tarjeta = card_number
-            return True
-        return False
+    def _get_api_token_for_user(self, user_id):
+        """ Obtiene el token de API para un usuario específico """
+        # Es mejor usar el ORM si es posible, pero mantenemos la consulta SQL
+        # si el modelo isi_pass_config no está directamente relacionado
+        self.env.cr.execute("""
+            SELECT token FROM isi_pass_config
+            WHERE user_id = %s
+            LIMIT 1
+        """, (user_id,))
+        result = self.env.cr.fetchone()
+        if not result:
+            _logger.warning(f"No se encontró token de API para el usuario ID: {user_id}")
+            return None
+        return result[0]
 
+    @api.model
+    def _get_api_url(self, user_id):
+        """ Obtiene la URL de la API para un usuario específico """
+        self.env.cr.execute("""
+            SELECT api_url FROM isi_pass_config
+            WHERE user_id = %s
+            LIMIT 1
+        """, (user_id,))
+        result = self.env.cr.fetchone()
+        if not result:
+            _logger.warning(f"No se encontró URL de API para el usuario ID: {user_id}")
+            return None
+        return result[0]
     
-    def _send_invoice_to_api(self, invoice_data):
-        """Envía los datos de la factura a la API"""
-        token, api_url = self._get_api_config()
-
-        if not token or not api_url:
-            error_message = "Configuración de API no encontrada"
-            self._broadcast_api_response({
-                'errors': [{'message': error_message}]
-            })
-            raise ValueError(error_message)
-
-        headers = {
-            'Authorization': f'Bearer {token}',
-            'Content-Type': 'application/json'
-        }
-
-        query = """
-        mutation FCV_REGISTRO_ONLINE($entidad: EntidadParamsInput, $input: FacturaCompraVentaInput!) {
-            facturaCompraVentaCreate(entidad: $entidad, input: $input) {
-                _id
-                cafc
-                cuf
-                razonSocialEmisor
-                representacionGrafica {
-                    pdf
-                    rollo
-                    sin
-                    xml
-                }
-                state
-                updatedAt
-                usuario
-                usucre
-                usumod
-            }
-        }
+    def _get_api_config(self, user_id, column_name):
         """
+        Obtiene el valor de la columna `column_name` de la tabla isi_pass_config
+        para el user_id dado. Retorna None si no existe.
+        """
+        # (Opcional) evitar inyección validando columna
+        allowed = {'sucursal_codigo', 'punto_venta_codigo'}
+        if column_name not in allowed:
+            raise ValueError(f"Columna no permitida: {column_name}")
 
-        if not self.to_invoice:
-            return
-
-        try:
-            response = requests.post(
-                api_url,
-                json={
-                    'query': query,
-                    'variables': {
-                        'entidad': invoice_data.get('entidad', {}),
-                        'input': invoice_data['input']
-                    }
-                },
-                headers=headers
+        self.env.cr.execute(f"""
+            SELECT {column_name} FROM isi_pass_config
+            WHERE user_id = %s
+            LIMIT 1
+        """, (user_id,))
+        row = self.env.cr.fetchone()
+        if not row:
+            _logger.warning(
+                f"No se encontró {column_name} para el usuario ID: {user_id}"
             )
-            
-            # Log completo para debugging
-            print("\n----------------------------------------")
-            print("Respuesta de la API:")
-            response_json = response.json()
-            print(json.dumps(response_json, indent=2))
-            print("----------------------------------------")
-            
-            # Enviar respuesta al cliente POS
-            self._broadcast_api_response(response_json)
-            
-            response.raise_for_status()
-
-            # Verificar errores en la respuesta y registrarlos
-            if 'errors' in response_json:
-                error_message = json.dumps(response_json['errors'], indent=2)
-                print("\n----------------------------------------")
-                print(f"Error en la API: {error_message}")
-                print("----------------------------------------")
-                raise ValueError(f"Error en la respuesta de la API: {error_message}")
-
-            return response_json
-
-        except requests.exceptions.RequestException as e:
-            _logger.error(f"Error en la llamada a la API: {str(e)}")
-            
-            # Preparar mensaje de error
-            error_response = {
-                'errors': [{'message': f"Error en la comunicación con la API: {str(e)}"}]
-            }
-            
-            # Enviar error al cliente POS
-            self._broadcast_api_response(error_response)
-            
-            raise
-
-
-    def _broadcast_api_response(self, response):
-        """
-        Envía la respuesta de la API a todos los clientes conectados.
-        Funciona tanto en Community como en Enterprise.
-        """
-        try:
-            # Preparar el mensaje
-            message = {
-                'type': 'api_response',
-                'payload': response,
-                'order_id': self.id,
-                'timestamp': fields.Datetime.now().isoformat()
-            }
-            
-            # Registrar en el log para depuración
-            _logger.info(f"Enviando mensaje al bus: {json.dumps(message, default=str)}")
-            
-            # Método que funciona tanto en Community como Enterprise
-            self.env['bus.bus']._sendone(
-                'api_response_channel',  # Canal general para todos los usuarios
-                message
-            )
-            
-            # Si también queremos enviar específicamente al usuario actual
-            if hasattr(self, 'user_id') and self.user_id:
-                self.env['bus.bus']._sendone(
-                    self.user_id.partner_id,
-                    'api_response_channel', 
-                    message
-                )
-            else:
-                self.env['bus.bus']._sendone(
-                    self.env.user.partner_id,
-                    'api_response_channel', 
-                    message
-                )
-                
-            _logger.info("Mensaje enviado correctamente al bus")
-            
-        except Exception as e:
-            _logger.error(f"Error al enviar mensaje al bus: {str(e)}")
-            print(f"\nError al enviar mensaje al bus: {str(e)}")
-
-    def _check_pdf_content(self):
-        """Verifica si el contenido del PDF es válido"""
-        if not self.rollo_pdf:
-            _logger.warning(f"rollo_pdf está vacío para la orden: {self.id}")
-            return False
-
-        try:
-            pdf_content = base64.b64decode(self.rollo_pdf)
-            if not pdf_content:
-                _logger.warning(
-                    f"PDF decodificado está vacío para la orden: {self.id}")
-                return False
-
-            if pdf_content[:4] != b'%PDF':
-                _logger.warning(
-                    f"El contenido no parece ser un PDF válido para la orden: {self.id}")
-                return False
-
-            _logger.info(f"PDF válido para la orden: {self.id}")
-            return True
-        except Exception as e:
-            _logger.error(
-                f"Error al verificar el PDF para la orden {self.id}: {str(e)}")
-            return False
-
-    def _prepare_invoice_data(self):
-        """Prepara los datos para la factura en el formato requerido por la API"""
-        cliente = {}
-        if self.partner_id:
-            cliente = {
-                'razonSocial': self.partner_id.razon_social or 'Sin Razón Social',
-                'numeroDocumento': self.partner_id.vat or '',
-                'email': self.partner_id.email or '',
-                'codigoTipoDocumentoIdentidad': int(self.partner_id.codigo_tipo_documento_identidad or 1),
-                'complemento': self.partner_id.complemento or ''
-            }
-        else:
-            cliente = {
-                'razonSocial': 'Sin Razón Social',
-                'numeroDocumento': '',
-                'email': '',
-                'codigoTipoDocumentoIdentidad': 1
-            }
-
-        detalle = []
-        codigos_producto_sin = []
-
-        for line in self.lines:
-            try:
-                item_detalle = {
-                    'codigoProductoSin': line.product_id.codigo_producto_homologado.split(' - ')[1] or '',
-                    'codigoProducto': line.product_id.default_code or '',
-                    'descripcion': line.product_id.name,
-                    'cantidad': line.qty,
-                    'unidadMedida': int(line.product_id.codigo_unidad_medida.split(' - ')[0]) or '',
-                    'precioUnitario': line.price_unit,
-                    'montoDescuento': line.price_unit * line.qty * line.discount / 100,
-                    'detalleExtra': ''
-                }
-                detalle.append(item_detalle)
-                codigos_producto_sin.append(item_detalle['codigoProductoSin'])
-
-            except Exception as e:
-                _logger.error(f"Error procesando producto: {str(e)}")
-
-        actividad_economica = self.lines[0].product_id.codigo_producto_homologado.split(
-            ' - ')[0]
-
-        numero_tarjeta = None
-        codigo_metodo_pago = 1
-
-        if self.payment_ids:
-            payment = self.payment_ids[0]
-            try:
-                codigo_metodo_pago = int(
-                    payment.payment_method_id.metodo_pago_sin)
-            except:
-                _logger.warning(
-                    "No se pudo obtener método de pago SIN, usando valor por defecto")
-                codigo_metodo_pago = 1
-
-            if codigo_metodo_pago == 2:
-                numero_tarjeta = self.numero_tarjeta or ''
-
-        return {
-            'entidad': {
-                'codigoSucursal': 0,
-                'codigoPuntoVenta': 0
-            },
-            'input': {
-                'cliente': cliente,
-                'codigoExcepcion': 1,
-                'actividadEconomica': actividad_economica,
-                'codigoMetodoPago': codigo_metodo_pago,
-                'numeroTarjeta': numero_tarjeta,
-                'descuentoAdicional': 0,
-                'codigoMoneda': 1,
-                'tipoCambio': 1,
-                'detalleExtra': '',
-                'detalle': detalle
-            }
-        }
+            return None
+        return row[0]
+# --- Método principal modificado ---
 
     def action_pos_order_paid(self):
-        """Método sobrescrito para manejar pagos y facturación"""
-        print("\n----------------------------------------")
-        print("Iniciando proceso de facturación")
-        print("----------------------------------------")
+        # Llamar primero al método original para que Odoo haga su procesamiento estándar
+        # (crear asientos contables, marcar como pagado, etc.)
+        res = super(PosOrder, self).action_pos_order_paid()
 
-        # Si no es para facturar, seguimos el comportamiento estándar de Odoo
-        if not self.to_invoice:
-            return super(PosOrder, self).action_pos_order_paid()
-
-        try:
-            # Preparar datos de la factura
-            invoice_data = self._prepare_invoice_data()
-
+        # Iterar sobre las órdenes (aunque usualmente es una sola desde la UI)
+        for order in self:
+            # Imprimir información básica (como en tu código original)
             print("\n----------------------------------------")
-            print("Datos de la factura:")
-            print(json.dumps(invoice_data, indent=2))
+            print(f"PROCESANDO ORDEN POS: {order.name}")
             print("----------------------------------------")
-            
-            # Enviar a la API
-            response = self._send_invoice_to_api(invoice_data)
+            print("CLIENTE:")
+            if order.partner_id:
+                print(f"  Razon Social: {order.partner_id.name}") # Usar 'name' como fallback si 'razon_social' no existe
+                # Asumiendo que tienes estos campos en res.partner:
+                print(f"  codigoTipoDocumentoIdentidad: {int(getattr(order.partner_id, 'codigo_tipo_documento_identidad', 'No especificado'))}")
+                print(f"  codigoCliente (NIT/CI): {order.partner_id.vat or 'No especificado'}")
+                print(f"  Email: {order.partner_id.email or 'No especificado'}")
+                print(f"  Complemento: {getattr(order.partner_id, 'complemento', 'No especificado')}")
+            else:
+                print("  Cliente: Consumidor Final / No especificado")
 
-            # Verificar si hay errores en la respuesta
-            if response and 'errors' in response:
-                error_message = response['errors'][0]['message'] if response['errors'] else "Error desconocido"
-                print("\n----------------------------------------")
-                print(f"Error en la API: {error_message}")
-                print("La orden NO será marcada como pagada")
-                print("----------------------------------------")
+            print("\nPRODUCTOS:")
+            for i, line in enumerate(order.lines, 1):
+                print(f"  {i}. {line.product_id.name}")
+                print(f"     Cantidad: {line.qty}")
+                print(f"     Precio unitario: {line.price_unit}")
+                if line.discount:
+                    descuento_monto = (line.price_unit * line.qty) * (line.discount / 100)
+                    print(f"     Descuento: {descuento_monto:.2f}") # Asumiendo Bs
+                print(f"     Subtotal: {line.price_subtotal}") # price_subtotal ya incluye descuento
 
-                # Enviar error al cliente POS si no se envió ya
-                self._broadcast_api_response({
-                    'errors': [{'message': error_message}]
-                })
+            print("\nMÉTODOS DE PAGO:")
+            if order.payment_ids:
+                for payment in order.payment_ids:
+                    payment_method_name = payment.payment_method_id.name
+                    # Asumiendo que tienes el campo 'metodo_pago_sin' en pos.payment.method
+                    metodo_pago_sin = getattr(payment.payment_method_id, 'metodo_pago_sin', 'No Definido')
+                    print(f"  Método: {payment_method_name}")
+                    print(f"  Método SIN: {metodo_pago_sin}")
+                    # Mostrar número de tarjeta si está presente en la orden Y el método es relevante (ej: contiene 'tarjeta')
+                    if order.temporary_card_number and 'tarjeta' in payment_method_name.lower():
+                         print(f"  Número Tarjeta (Temporal): {order.temporary_card_number}")
+                    print(f"  Monto: {payment.amount}")
+            else:
+                print("  No se registraron pagos (esto sería inusual aquí)")
 
-                # No marcamos la orden como pagada y lanzamos el error
-                raise ValueError(f"Error en la respuesta de la API: {error_message}")
+            print("\nFACTURACIÓN:")
+            print(f"  Se factura: {'Sí' if order.to_invoice else 'No'}")
 
-            if response and response.get('data', {}).get('facturaCompraVentaCreate'):
-                result = response['data']['facturaCompraVentaCreate']
+            print("\nTOTALES:")
+            print(f"  Subtotal (antes de imp.): {order.amount_total - order.amount_tax}")
+            print(f"  Impuestos: {order.amount_tax}")
+            print(f"  Total: {order.amount_total}")
+            print("----------------------------------------")
 
-                # Preparar y crear/actualizar account.move
-                account_move_data = self._prepare_account_move_data(response)
-                account_move = self._create_or_update_account_move(account_move_data)
+            # --- Lógica de llamada a la API SI SE DEBE FACTURAR ---
+            if order.to_invoice:
+                print("\nINTENTANDO GENERAR FACTURA ELECTRÓNICA VÍA API...")
 
-                # Guardar datos relevantes en la orden
-                self.write({
-                    'cuf': result.get('cuf'),
-                    'estado_factura': result.get('state'),
-                    'account_move_id': account_move.id,
-                    'state': 'paid'  # Marcar como pagada
-                })
+                # Obtener configuración de API (usando el usuario actual que procesa la orden)
+                current_user_id = self.env.user.id
+                token = order._get_api_token_for_user(current_user_id)
+                api_url = order._get_api_url(current_user_id)
 
-                print("\n----------------------------------------")
-                print("Factura procesada exitosamente")
-                print(f"CUF: {result.get('cuf')}")
-                print(f"Estado: {result.get('state')}")
-                print("Orden marcada como pagada")
-                print("----------------------------------------\n")
+                if not token or not api_url:
+                    error_message = "Error de Configuración: No se pudo obtener el Token o la URL de la API para la facturación."
+                    print(f"ERROR: {error_message}")
+                    order.write({'invoice_api_response': error_message}) # Guardar error
+                    continue # Pasar a la siguiente orden si hubiera varias
 
-                # Comunicar éxito (por si acaso, aunque ya debería estar enviado)
-                self._broadcast_api_response(response)
+                # --- Preparar datos para la API ---
+                # Datos del cliente (con valores por defecto si no hay cliente)
+                if order.partner_id:
+                    cliente_data = {
+                        # Usa 'name' como razon social si no existe 'razon_social'
+                        "razonSocial": getattr(order.partner_id, 'razon_social', order.partner_id.name) or "Sin Nombre",
+                        # Asume 'vat' es el numeroDocumento y 'codigo_tipo_documento_identidad' existe
+                        "numeroDocumento": order.partner_id.vat or "0",
+                        "complemento": getattr(order.partner_id, 'complemento', None), # Enviar null si no existe
+                        "email": order.partner_id.email or "sin_correo@dominio.com",
+                        "codigoTipoDocumentoIdentidad": int(getattr(order.partner_id, 'codigo_tipo_documento_identidad', 5)) # 5 = NIT, default si no hay
+                    }
+                    # Limpiar complemento si es vacío o False para que sea null en JSON
+                    if not cliente_data["complemento"]:
+                         cliente_data["complemento"] = None
+                else:
+                    # Datos por defecto para "consumidor final" según tu ejemplo
+                    cliente_data = {
+                        "razonSocial": "Sin Registro", # Modificado según ejemplo
+                        "numeroDocumento": "0",        # Modificado según ejemplo comun para CF
+                        "complemento": None,
+                        "email": "sin_correo@dominio.com", # Modificado
+                        "codigoTipoDocumentoIdentidad": 5 # NIT (o el código que corresponda a 'Sin Nombre'/'0')
+                    }
 
-                return True
+                # Detalles de los productos
+                detalle_factura = []
+                for line in order.lines:
+                    # Asegúrate de que estos campos existan en product.product o template
+                    # Si no existen, necesitarás añadirlos o buscar alternativas
+                    codigo_producto_sin = getattr(line.product_id, 'codigo_producto_sin', '83131') # Default del ejemplo
+                    # Usar default_code si existe, si no, un placeholder
+                    codigo_producto = line.product_id.default_code or f"PROD-{line.product_id.id}"
+                    # Asumiendo que tienes un campo 'unidad_medida_sin' en product.uom
+                    # o mapeas desde uom_id. Si no, usar default.
+                    unidad_medida_api = getattr(line.product_id.uom_id, 'unidad_medida_sin', 1) # 1 = Unidad (default)
+
+                    monto_descuento_linea = (line.price_unit * line.qty) * (line.discount / 100)
+
+                    detalle_factura.append({
+                        "codigoProductoSin": codigo_producto_sin,
+                        "codigoProducto": codigo_producto,
+                        "descripcion": line.product_id.name,
+                        "cantidad": line.qty,
+                        "unidadMedida": unidad_medida_api,
+                        "precioUnitario": line.price_unit,
+                        "montoDescuento": round(monto_descuento_linea, 2),
+                        # "detalleExtra": "Opcional por línea" # Puedes añadir si lo necesitas
+                    })
+
+                # Método de pago y número de tarjeta
+                # Lógica simplificada: Usa el primer método de pago encontrado.
+                # Considera mejorar esto si pueden haber múltiples pagos relevantes.
+                codigo_metodo_pago_api = 1 # Default: Efectivo
+                numero_tarjeta_api = None
+                if order.payment_ids:
+                    first_payment = order.payment_ids[0]
+                    # Asume que 'metodo_pago_sin' existe en pos.payment.method
+                    codigo_metodo_pago_api = int(getattr(first_payment.payment_method_id, 'metodo_pago_sin', 1))
+
+                    # Si el método de pago requiere tarjeta (ej: código 2 según tu ejemplo)
+                    # Y tenemos un número de tarjeta guardado en la orden
+                    if str(codigo_metodo_pago_api) == '2' and order.temporary_card_number:
+                         # Limpiar y usar solo los últimos 4 dígitos o según requiera la API
+                         # Aquí usamos el número completo temporalmente guardado,
+                         # ¡¡ASEGÚRATE QUE ESTO CUMPLA CON PCI DSS y regulaciones locales!!
+                         # Considera truncar/ofuscar si es necesario y permitido por la API.
+                         # Por seguridad, solo enviaremos los últimos 4 dígitos como ejemplo:
+                         # numero_tarjeta_api = order.temporary_card_number[-4:] # Ejemplo últimos 4
+                         # O como pide tu ejemplo, el número completo (¡CUIDADO!)
+                         numero_tarjeta_api = order.temporary_card_number # Ejemplo número completo
+
+                    # Asegúrate de que el numeroTarjeta sea null si no aplica
+                    if str(codigo_metodo_pago_api) != '2':
+                        numero_tarjeta_api = None
+
+                actividades_economicas = set()
+                for line in order.lines:
+                    if line.product_id.codigo_producto_homologado:
+                        parts = line.product_id.codigo_producto_homologado.split(' - ')
+                        if len(parts) > 0:
+                            actividades_economicas.add(parts[0])
+
+                # Si no hay actividades económicas, usar un valor por defecto
+                actividad_economica = random.choice(list(actividades_economicas)) if actividades_economicas else "620000"
+                # Construir el objeto 'input' para la mutación GraphQL
+                # Usa valores fijos/de configuración donde sea necesario
+                factura_input = {
+                    "cliente": cliente_data,
+                    "codigoExcepcion": 0, # 0 si no hay excepción, 1 si sí (según tu ejemplo)
+                    "actividadEconomica": actividad_economica,
+                    "codigoMetodoPago": codigo_metodo_pago_api,
+                    "numeroTarjeta": numero_tarjeta_api, # Será null si no es pago con tarjeta o no se capturó
+                    "descuentoAdicional": 0, # Ejemplo: obtener de config POS si existe
+                    "codigoMoneda": 1, # 1 = Boliviano (ajusta si es necesario)
+                    "tipoCambio": 1, # Ajústalo si usas otras monedas
+                    # "detalleExtra": "<p><strong>Detalle global extra</strong></p>", # Opcional
+                    "detalle": detalle_factura
+                }
+
+                user_id = self.env.user.id
+                codigo_sucursal    = self._get_api_config(user_id, 'sucursal_codigo')    or 0
+                codigo_punto_venta = self._get_api_config(user_id, 'punto_venta_codigo') or 0
+                # Construir las variables completas para la query GraphQL
+                graphql_variables = {
+                    "entidad": {
+                        "codigoSucursal":    int(codigo_sucursal),
+                        "codigoPuntoVenta":  int(codigo_punto_venta),
+                    },
+                    "input": factura_input
+                }
+
+                # Definir la mutación GraphQL (como string)
+                graphql_mutation = """
+                mutation FCV_REGISTRO_ONLINE($entidad: EntidadParamsInput, $input: FacturaCompraVentaInput!) {
+                    facturaCompraVentaCreate(entidad: $entidad, input: $input) {
+                        _id
+                        cafc
+                        cuf
+                        razonSocialEmisor
+                        representacionGrafica {
+                            pdf
+                            rollo
+                            sin
+                            xml
+                        }
+                        state
+                        updatedAt
+                        usuario
+                        usucre
+                        usumod
+                    }
+                }
+                """
+
+                # Cabeceras de la petición
+                headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': f'Bearer {token}'
+                }
+
+                # --- Realizar la llamada a la API ---
+                api_success = False
+                api_result_data = {}
+                error_detail = "Error desconocido durante la llamada API."
+
+                # Imprimir datos que se enviarán (¡Cuidado con datos sensibles como el token en logs de producción!)
+                print("\n--- ENVIANDO DATOS A API DE FACTURACIÓN ---")
+                # Clona las variables para no modificar el original al ocultar el token para el print
+                variables_copy_for_print = graphql_variables.copy()
+                # No imprimimos el token directamente en consola por seguridad, aunque sí lo usamos
+                print(f"URL: {api_url}")
+                # print(f"Headers: {headers}") # No imprimir headers completos por el token
+                print("Variables (Payload):")
+                print(json.dumps(variables_copy_for_print, indent=2))
+                print("--- FIN DATOS A ENVIAR ---")
+
+                try:
+                    response = requests.post(
+                        api_url,
+                        headers=headers,
+                        json={'query': graphql_mutation, 'variables': graphql_variables},
+                        timeout=30 # Añadir timeout
+                    )
+                    response.raise_for_status() # Lanza error para códigos HTTP 4xx/5xx
+
+                    api_response_json = response.json()
+
+                    # Imprimir respuesta COMPLETA de la API para depuración
+                    print("\n--- RESPUESTA DE LA API ---")
+                    print(json.dumps(api_response_json, indent=2))
+                    print("--- FIN RESPUESTA API ---")
+
+                    # Guardar respuesta completa (texto) en la orden
+                    order.write({'invoice_api_response': json.dumps(api_response_json, indent=2)})
+
+                    # Analizar la respuesta GraphQL
+                    if 'errors' in api_response_json and api_response_json['errors']:
+                        # La API GraphQL devolvió errores específicos
+                        error_detail = "Error en API GraphQL: " + "; ".join([e.get('message', 'Error no especificado') for e in api_response_json['errors']])
+                        print(f"ERROR GraphQL: {error_detail}")
+
+                    elif 'data' in api_response_json and api_response_json['data'].get('facturaCompraVentaCreate'):
+                        # Éxito, la mutación devolvió datos
+                        api_result_data = api_response_json['data']['facturaCompraVentaCreate']
+                        # Verificar si la respuesta contiene lo esperado (ej: representacionGrafica)
+                        if api_result_data and api_result_data.get('representacionGrafica'):
+                            api_success = True
+                            print("¡FACTURA GENERADA EXITOSAMENTE!")
+                            # Guardar URLs y notificar
+                            links = api_result_data['representacionGrafica']
+                            order.write({
+                                'invoice_pdf_url': links.get('pdf'),
+                                'invoice_xml_url': links.get('xml'),
+                                'invoice_sin_url': links.get('sin'),
+                                'invoice_rollo_url': links.get('rollo'),
+                            })
+                            success_message = f"Factura generada exitosamente (CUF: {api_result_data.get('cuf', 'N/A')})."
+                            links_html = "<ul>"
+                            if links.get('pdf'): links_html += f'<li><a href="{links["pdf"]}" target="_blank">Ver PDF</a></li>'
+                            if links.get('xml'): links_html += f'<li><a href="{links["xml"]}" target="_blank">Ver XML</a></li>'
+                            if links.get('sin'): links_html += f'<li><a href="{links["sin"]}" target="_blank">Ver SIN</a></li>'
+                            if links.get('rollo'): links_html += f'<li><a href="{links["rollo"]}" target="_blank">Ver Rollo</a></li>'
+                            links_html += "</ul>"
+
+                        else:
+                            # La respuesta 'data' no tiene la estructura esperada
+                            error_detail = "Respuesta exitosa de API pero formato inesperado o sin datos de factura."
+                            print(f"ERROR: {error_detail}")
+
+                    else:
+                        # La respuesta JSON no tiene 'data' ni 'errors' claros
+                        error_detail = "Respuesta inesperada de la API de facturación."
+                        print(f"ERROR: {error_detail}")
+
+
+                except requests.exceptions.Timeout:
+                    error_detail = "Error de Conexión: Timeout al conectar con la API de facturación."
+                    print(f"ERROR: {error_detail}")
+                    order.write({'invoice_api_response': error_detail})
+
+                except requests.exceptions.RequestException as e:
+                    # Error de conexión, HTTP, etc.
+                    error_detail = f"Error de Conexión/HTTP: {e}"
+                    print(f"ERROR: {error_detail}")
+                    # Guardar el error en la orden para referencia
+                    order.write({'invoice_api_response': error_detail})
+                    # Añadir mensaje en el chatter de la orden
+
+                # --- Fin llamada API ---
+                if not api_success:
+                    # Aquí decidimos NO marcar la orden como no pagada, solo mostramos/registramos el error.
+                    # La orden ya fue marcada como pagada por el super() al inicio.
+                    print(f"La generación de la factura falló, pero la orden {order.name} se mantiene pagada en Odoo.")
+                    # Podrías añadir lógica adicional aquí si fuera necesario, como crear una actividad
+                    # para revisar manualmente la facturación fallida.
+                    # self.env['mail.activity'].create({
+                    #     'activity_type_id': self.env.ref('mail.mail_activity_data_todo').id,
+                    #     'res_id': order.id,
+                    #     'res_model_id': self.env.ref('point_of_sale.model_pos_order').id,
+                    #     'user_id': self.env.user.id, # O un usuario específico de facturación
+                    #     'summary': 'Revisar fallo API Facturación',
+                    #     'note': f'La llamada API para la orden {order.name} falló. Error: {error_detail}',
+                    # })
 
             else:
-                error_msg = "Respuesta de API inválida o vacía"
-                print("\n----------------------------------------")
-                print("Error desconocido al procesar la factura:")
-                if response:
-                    print(json.dumps(response, indent=2))
-                else:
-                    print("No se recibió respuesta")
-                print("----------------------------------------")
-                
-                # Enviar error al cliente POS
-                self._broadcast_api_response({
-                    'errors': [{'message': error_msg}]
-                })
-                
-                raise ValueError(f"Error en la respuesta de la API: {error_msg}")
+                print("\nEsta orden no requiere facturación electrónica.")
 
-        except Exception as e:
-            _logger.error(f"Error en el proceso de facturación: {str(e)}")
-            print("\n----------------------------------------")
-            print("Error en el proceso de facturación:")
-            print(f"Detalles del error: {str(e)}")
-            print("La orden NO será marcada como pagada")
-            print("----------------------------------------")
-            
-            # Enviar error al cliente POS
-            self._broadcast_api_response({
-                'errors': [{'message': str(e)}]
-            })
-            
-            raise
-
-    @api.model
-    def _get_api_config(self):
-        self.env.cr.execute("""
-            SELECT token, api_url 
-            FROM isi_pass_config 
-            WHERE user_id = %s 
-            LIMIT 1
-        """, (self.env.user.id,))
-        result = self.env.cr.fetchone()
-        return result if result else (None, None)
-
-    def _create_or_update_account_move(self, invoice_data):
-        """Crea o actualiza el registro en account.move"""
-        AccountMove = self.env['account.move']
-
-        # Si ya existe una factura asociada, la actualizamos
-        if self.account_move_id:
-            self.account_move_id.write(invoice_data)
-            return self.account_move_id
-
-        # Aseguramos que el estado inicial sea 'draft'
-        invoice_data['state'] = 'draft'
-
-        # Si no existe, creamos una nueva
-        invoice_data.update({
-            'move_type': 'out_invoice',
-            'partner_id': self.partner_id.id,
-            'invoice_date': self.date_order.date(),
-            'invoice_origin': self.name,
-            'pos_order_ids': [(4, self.id)],
-        })
-
-        new_move = AccountMove.create(invoice_data)
-
-        # Después de crear la factura, la publicamos
-        try:
-            new_move.action_post()
-        except Exception as e:
-            _logger.error(f"Error al publicar la factura: {str(e)}")
-            raise
-
-        self.write({'account_move_id': new_move.id})
-        return new_move
-
-    def _prepare_account_move_data(self, response_data):
-
-        if not self.to_invoice:
-            return
-
-        """Prepara los datos completos para crear o actualizar el account.move, incluyendo líneas de productos"""
-        result = response_data.get('data', {}).get(
-            'facturaCompraVentaCreate', {})
-        representacion_grafica = result.get('representacionGrafica', {})
-
-        # Preparar líneas de factura
-        invoice_lines = []
-        for line in self.lines:
-            invoice_line_vals = {
-                'product_id': line.product_id.id,
-                'name': line.product_id.name,
-                'quantity': line.qty,
-                'price_unit': line.price_unit,
-                'discount': line.discount,
-                'product_uom_id': line.product_id.uom_id.id,
-                'tax_ids': [(6, 0, line.tax_ids_after_fiscal_position.ids)],
-                'display_type': 'product',
-                'sequence': line.id,
-                # Campos adicionales específicos del producto
-            }
-            invoice_lines.append((0, 0, invoice_line_vals))
-
-        return {
-            # Campos de sistema con valores específicos
-            'state': 'draft',  # Cambiado a 'draft' en lugar de 'posted'
-            'payment_state': 'not_paid',  # Inicialmente no pagado
-            'move_type': 'out_invoice',
-            'invoice_origin': self.name,
-            'journal_id': self.session_id.config_id.invoice_journal_id.id,
-            'company_id': self.company_id.id,
-            'currency_id': self.currency_id.id,
-            'partner_id': self.partner_id.id,
-            'invoice_user_id': self.env.user.id,
-            'invoice_date': self.date_order.date(),
-            'date': self.date_order.date(),
-            'invoice_date_due': self.date_order.date(),
-
-            # Campos de montos
-            'amount_untaxed': self.amount_total - self.amount_tax,
-            'amount_tax': self.amount_tax,
-            'amount_total': self.amount_total,
-            'amount_residual': self.amount_total,  # Inicialmente el monto total
-            'amount_untaxed_signed': self.amount_total - self.amount_tax,
-            'amount_tax_signed': self.amount_tax,
-            'amount_total_signed': self.amount_total,
-            'amount_residual_signed': self.amount_total,  # Inicialmente el monto total
-
-            # Campos personalizados de la facturación
-            'razon_social': self.partner_id.razon_social or 'Sin Razón Social',
-            'codigo_tipo_documento_identidad': self.partner_id.codigo_tipo_documento_identidad,
-            'phone': self.partner_id.phone,
-            'email': self.partner_id.email,
-            'codigo_metodo_pago': self.payment_ids and self.payment_ids[0].payment_method_id.metodo_pago_sin or '1',
-
-            # Campos específicos de la respuesta API
-            'cuf': result.get('cuf'),
-            'api_invoice_id': result.get('_id'),
-            'api_invoice_state': result.get('state'),
-            'pdf_url': representacion_grafica.get('pdf'),
-            'sin_url': representacion_grafica.get('sin'),
-            'rollo_url': representacion_grafica.get('rollo'),
-            'xml_url': representacion_grafica.get('xml'),
-            'numero_tarjeta': self.payment_ids and self.payment_ids[0].payment_method_id.metodo_pago_sin == '2' and self.numero_tarjeta or False,
-            # Campos adicionales de control
-            'permitir_nit_invalido': False,
-            'additional_discount': 0,
-            'gift_card_amount': 0,
-            'custom_subtotal': self.amount_total - self.amount_tax,
-            'custom_total': self.amount_total,
-
-            # Líneas de factura
-            'invoice_line_ids': invoice_lines,
-            'payment_state': 'paid',
-            'state': 'posted',
-            # colocamos como publicado para que no se pueda modificar y tambien pagado
-            'payment_state': 'paid',
+            print(f"\n--- FIN PROCESAMIENTO ORDEN {order.name} ---")
 
 
-        }
+        # Devolver el resultado del método original
+        return res
 
+# Nota importante sobre Seguridad y Sensibilidad de Datos:
+# - El campo `temporary_card_number` almacena información sensible. Asegúrate de cumplir
+#   con PCI DSS y las normativas locales sobre almacenamiento y transmisión de números de tarjeta.
+#   Lo ideal es no almacenar el número completo o hacerlo solo el tiempo estrictamente necesario
+#   y con medidas de seguridad adecuadas (encriptación, logs de acceso, etc.).
+# - El código actual envía el número de tarjeta completo (si está disponible) a la API.
+#   Verifica si esto es requerido y permitido. A menudo, solo se envían los últimos 4 dígitos
+#   o un token de pago en lugar del número real. ¡Adapta esto según tus requisitos y seguridad!
+# - Evita imprimir información sensible como tokens de API o números de tarjeta completos
+#   en logs de producción. Usa `_logger.debug` o elimina esos prints antes de desplegar.
 
-class PosOrderController(http.Controller):
-    @http.route('/pos/web/download_rollo/<int:order_id>', type='http', auth='user')
-    def download_rollo(self, order_id, **kwargs):
-        """Controlador para descargar el PDF del rollo"""
-        try:
-            order = request.env['pos.order'].sudo().browse(order_id)
-            if not order or not order.rollo_pdf:
-                _logger.warning(
-                    f"PDF del rollo no encontrado para la orden: {order_id}")
-                return request.not_found()
-
-            if not order._check_pdf_content():
-                _logger.warning(
-                    f"El contenido del PDF no es válido para la orden: {order_id}")
-                return request.not_found()
-
-            pdf_data = base64.b64decode(order.rollo_pdf)
-            filename = f'rollo_{order.name}_{order.date_order.strftime("%Y%m%d")}.pdf'
-
-            headers = [
-                ('Content-Type', 'application/pdf'),
-                ('Content-Disposition', f'attachment; filename="{filename}"'),
-                ('Content-Length', len(pdf_data))
-            ]
-
-            return request.make_response(pdf_data, headers=headers)
-
-        except Exception as e:
-            _logger.error(
-                f"Error al descargar el rollo para la orden {order_id}: {str(e)}", exc_info=True)
-            return request.not_found()
+# Notas sobre campos asumidos (DEBES VERIFICAR/CREARLOS):
+# - En `res.partner`: `razon_social`, `codigo_tipo_documento_identidad`, `complemento`.
+# - En `product.product` o `product.template`: `codigo_producto_sin`.
+# - En `product.uom`: `unidad_medida_sin` (o alguna forma de mapear la unidad de medida de Odoo a la requerida por la API).
+# - En `pos.payment.method`: `metodo_pago_sin`.
+# - En `pos.config`: `codigo_sucursal_sin`, `codigo_punto_venta_sin`, `descuento_adicional` (si aplica).
+# - En `res.company`: `codigo_actividad_economica`.
+# - El modelo `isi_pass_config` con campos `user_id`, `token`, `api_url`.

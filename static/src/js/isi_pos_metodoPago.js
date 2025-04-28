@@ -3,6 +3,7 @@ import { patch } from "@web/core/utils/patch";
 import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
 import { useService } from "@web/core/utils/hooks";
 import { CardNumberModal } from "./isi_card_number_modal"; // El nuevo modal para el número de tarjeta
+import { ErrorModal } from "./isi_error_modal"; // Modal de error
 import { SuccessModal } from "./isi_modal_api"; // Modal de éxito
 import { _t } from "@web/core/l10n/translation"; // Para traducciones
 
@@ -196,30 +197,37 @@ patch(PaymentScreen.prototype, {
 
         // --- Inicio: Llamada a Validación Original y Modal Éxito ---
         try {
-            // Llama a la validación original. Esto enviará la orden al backend.
+            // Llama a la validación original (envía al backend)
             const result = await super.validateOrder(isForceValidate);
 
-            // OJO: El éxito aquí solo significa que la validación *local* pasó y la orden
-            // se *intentará* enviar. El modal aquí puede ser prematuro si el backend falla.
-            // Una mejor práctica es mostrar el modal en `_finalizeValidation` o
-            // después de confirmar la sincronización exitosa.
-
-            // Mostramos el modal aquí como solicitado para simplicidad:
             if (this.currentOrder.finalized) {
-                // Odoo marca la orden como finalizada aquí
-                const order = this.currentOrder;
                 this.dialogService.add(SuccessModal, {
-                    title: _t("¡Procesado con Éxito!"), // Título opcional
-                    orderName: order.name,
-                    isInvoice: order.is_to_invoice(),
+                    title: _t("¡Procesado con Éxito!"),
+                    orderName: this.currentOrder.name,
+                    isInvoice: this.currentOrder.is_to_invoice(),
                 });
             }
-            return result; // Devuelve el resultado de la validación original
+            return result;
         } catch (error) {
-            console.error("Error durante la validación final:", error);
-            // No mostramos modal de éxito si hay error
-            // Odoo POS suele manejar los errores de validación mostrando un ErrorPopup
-            return false; // Indica que la validación falló
+            console.error(
+                "Error durante la validación final (Objeto Completo):",
+                error
+            ); // <-- AÑADE ESTO
+            console.log(
+                "Error al procesar la orden (Mensaje Intentado):",
+                error?.data?.message || error?.message
+            ); // Tu log original modificado con optional chaining
+
+            // Mostramos el modal de error
+            this.dialogService.add(ErrorModal, {
+                title: _t("Error al procesar la orden"),
+                errorMessage:
+                    error?.data?.message || // Intenta obtener el mensaje específico de Odoo/Python primero
+                    error?.message || // Si no, el mensaje genérico del error RPC
+                    String(error) || // Como último recurso, convierte el objeto a string
+                    _t("Error desconocido"),
+            });
+            return false;
         }
         // --- Fin: Llamada a Validación Original y Modal Éxito ---
     },

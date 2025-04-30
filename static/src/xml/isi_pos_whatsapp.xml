@@ -1,7 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="pos_receipt_invoice_send_whatsapp.ReceiptScreen" t-inherit="point_of_sale.ReceiptScreen" t-inherit-mode="extension" owl="1">
+        <!-- Añadimos los 4 botones de documentos antes del botón de WhatsApp -->
         <xpath expr="//div[contains(@class, 'buttons')]" position="after">
+            <div class="document-buttons d-flex justify-content-between mb-3 px-1">
+                <button 
+                    class="button pdf-button btn btn-lg py-2 flex-fill mx-1" 
+                    style="background-color: #4CAF50; color: white; font-size: 14px;"
+                    t-on-click="printPdf">
+                    <i class="fa fa-file-pdf-o me-1"></i> Imprimir PDF
+                </button>
+                <button 
+                    class="button roll-button btn btn-lg py-2 flex-fill mx-1" 
+                    style="background-color: #2196F3; color: white; font-size: 14px;"
+                    t-on-click="printRollo">
+                    <i class="fa fa-print me-1"></i> Imprimir Rollo
+                </button>
+                <button 
+                    class="button sin-button btn btn-lg py-2 flex-fill mx-1" 
+                    style="background-color: #FF9800; color: white; font-size: 14px;"
+                    t-on-click="viewSin">
+                    <i class="fa fa-eye me-1"></i> Ver SIN
+                </button>
+                <button 
+                    class="button xml-button btn btn-lg py-2 flex-fill mx-1" 
+                    style="background-color: #9C27B0; color: white; font-size: 14px;"
+                    t-on-click="viewXml">
+                    <i class="fa fa-file-code-o me-1"></i> Ver XML
+                </button>
+            </div>
+            
+            <!-- Mantenemos el input de WhatsApp -->
             <div class="input-group my-3">
                 <input 
                     type="text" 
@@ -12,8 +41,7 @@
                 <button 
                     class="send btn px-5 highlight btn-primary" 
                     type="button"
-                    t-on-click="sendWhatsApp"
-                >
+                    t-on-click="sendWhatsApp">
                     <i class="fa fa-whatsapp me-1" aria-hidden="true"></i>
                 </button>
             </div>

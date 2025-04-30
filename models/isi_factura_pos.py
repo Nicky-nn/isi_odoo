@@ -307,21 +307,17 @@ class PosOrder(models.Model):
                         # 3. Verifica si se prepararon datos y crea la factura Odoo
                         if move_vals:
                             try:
-                                # Intenta crear la factura. Puede requerir sudo() si el usuario del POS
-                                # no tiene permisos directos para crear asientos contables.
-                                # Es buena práctica usar with_context para el tipo por defecto.
+                                # Intenta crear la factura
                                 invoice = self.env['account.move'].with_context(default_move_type='out_invoice').sudo().create(move_vals)
                                 print(f"Factura Odoo creada con ID: {invoice.id} ({invoice.name}) para la orden POS {order.id}")
 
-                                # 4. Opcional: Enlazar la factura creada a la orden POS
-                                #    Necesitas un campo Many2one 'account_move_id' (o similar) en 'pos.order'
-                                # order.sudo().write({'account_move_id': invoice.id})
-
-                                # 5. Opcional: Validar la factura si la creaste en 'draft'
-                                #    Si _prepare_account_move_data la configura como 'posted', esto no es necesario.
-                                # if invoice.state == 'draft':
-                                #    invoice.sudo().action_post()
-                                #    print(f"Factura Odoo ID: {invoice.id} publicada.")
+                                # Vincular la factura con la orden POS usando el campo nativo
+                                order.sudo().write({'account_move': invoice.id})
+                                
+                                # Si necesitas validar la factura
+                                if invoice.state == 'draft':
+                                    invoice.sudo().action_post()
+                                    print(f"Factura Odoo ID: {invoice.id} publicada.")
 
                             except Exception as e_invoice:
                                 error_msg = f"Error al crear/procesar la factura Odoo para la orden {order.name} después de la API exitosa: {e_invoice}"
@@ -499,17 +495,12 @@ class PosOrder(models.Model):
 
             invoice_line_vals = {
                 'product_id': line.product_id.id,
-                'name': line.product_id.name, # O podrías usar line.name si tiene una descripción específica
+                'name': line.product_id.name,
                 'quantity': line.qty,
                 'price_unit': line.price_unit,
                 'discount': line.discount,
                 'product_uom_id': line.product_id.uom_id.id,
-                # Asegúrate que tax_ids_after_fiscal_position exista o usa line.tax_ids
-                'tax_ids': [(6, 0, line.tax_ids_after_fiscal_position.ids if line.tax_ids_after_fiscal_position else line.tax_ids.ids)],
-                # 'display_type': 'product', # No siempre es necesario, Odoo lo infiere
-                # 'sequence': line.id, # Odoo asigna secuencia usualmente, pero puedes forzarla si es necesario
-                # Campos adicionales específicos del producto si los necesitas
-                 'pos_order_line_id': line.id, # Puedes añadir una referencia a la línea original del POS
+                'tax_ids': [(6, 0, line.tax_ids_after_fiscal_position.ids if hasattr(line, 'tax_ids_after_fiscal_position') and line.tax_ids_after_fiscal_position else line.tax_ids.ids)],
             }
             invoice_lines.append((0, 0, invoice_line_vals))
 
@@ -523,6 +514,15 @@ class PosOrder(models.Model):
 
         # Construcción del diccionario de valores para account.move
         move_vals = {
+            'partner_id': self.partner_id.id if self.partner_id else False,
+            'invoice_date': fields.Date.context_today(self),
+            'move_type': 'out_invoice',
+            'ref': self.name,
+            'invoice_line_ids': invoice_lines,
+            'invoice_origin': self.name,
+            'invoice_user_id': self.user_id.id,
+            'invoice_date_due': fields.Date.context_today(self),
+            'currency_id': self.currency_id.id,
             'razon_social': razon_social_cliente,
             'codigo_tipo_documento_identidad': cod_tipo_doc_cliente,
             'phone': phone_cliente, # Campo estándar en Odoo es partner_id.phone

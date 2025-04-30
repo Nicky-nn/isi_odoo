@@ -292,61 +292,60 @@ class PosOrder(models.Model):
                     raise UserError(specific_error_message)
 
                 elif 'data' in api_response_json and api_response_json['data'].get('facturaCompraVentaCreate'):
-                    # ÉXITO API (según estructura esperada)
                     api_result_data = api_response_json['data']['facturaCompraVentaCreate']
+                    
                     if api_result_data and api_result_data.get('representacionGrafica'):
-                        # ÉXITO REAL Y COMPLETO
-                        print(f"¡FACTURA GENERADA EXITOSAMENTE POR API!")
-
-                        # --- CORRECCIÓN AQUÍ ---
-                        # 1. Llama al método SOBRE 'order', no 'self'
-                        # 2. Captura los valores retornados
-                        print(f"Llamando a _prepare_account_move_data para la orden POS ID: {order.id}") # Log antes de llamar
-                        move_vals = order._prepare_account_move_data(api_response_json) # <<< CORREGIDO
-
-                        # 3. Verifica si se prepararon datos y crea la factura Odoo
-                        if move_vals:
+                        representacion_grafica = api_result_data.get('representacionGrafica', {})
+                        
+                        # Guardar URLs en la orden POS
+                        order.write({
+                            'invoice_pdf_url': representacion_grafica.get('pdf'),
+                            'invoice_xml_url': representacion_grafica.get('xml'),
+                            'invoice_sin_url': representacion_grafica.get('sin'),
+                            'invoice_rollo_url': representacion_grafica.get('rollo'),
+                        })
+                        
+                        # Preparar datos para la factura Odoo
+                        move_vals = order._prepare_account_move_data(api_response_json)
+                        
+                        # Verificar si ya existe una factura asociada
+                        if order.account_move:
+                            order._update_invoice_with_api_data(api_result_data)
+                            # Actualizar la factura existente con los datos de la API
+                            print(f"Actualizando factura existente ID: {order.account_move.id} con datos de la API")
+                            
+                            # Extraer solo los campos relevantes de la API para actualizar
+                            api_update_vals = {
+                                'cuf': api_result_data.get('cuf'),
+                                'api_invoice_id': api_result_data.get('_id'),
+                                'pdf_url': representacion_grafica.get('pdf'),
+                                'sin_url': representacion_grafica.get('sin'),
+                                'rollo_url': representacion_grafica.get('rollo'),
+                                'xml_url': representacion_grafica.get('xml'),
+                                # Otros campos importantes de la respuesta...
+                            }
+                            # Actualizar solo con los valores de la API, sin tocar líneas o estructura
+                            order.account_move.sudo().write(api_update_vals)
+                            print(f"Factura ID: {order.account_move.id} actualizada con datos de la API")
+                        else:
+                            # Si no hay factura, crearla con todos los datos
                             try:
-                                # Intenta crear la factura
                                 invoice = self.env['account.move'].with_context(default_move_type='out_invoice').sudo().create(move_vals)
-                                print(f"Factura Odoo creada con ID: {invoice.id} ({invoice.name}) para la orden POS {order.id}")
-
-                                # Vincular la factura con la orden POS usando el campo nativo
+                                print(f"Factura Odoo creada con ID: {invoice.id} para la orden POS {order.id}")
+                                
+                                # Vincular la factura con la orden POS
                                 order.sudo().write({'account_move': invoice.id})
                                 
                                 # Si necesitas validar la factura
                                 if invoice.state == 'draft':
                                     invoice.sudo().action_post()
                                     print(f"Factura Odoo ID: {invoice.id} publicada.")
-
                             except Exception as e_invoice:
-                                error_msg = f"Error al crear/procesar la factura Odoo para la orden {order.name} después de la API exitosa: {e_invoice}"
+                                error_msg = f"Error al crear factura: {e_invoice}"
                                 print(f"ERROR: {error_msg}")
                                 _logger.error(error_msg)
-                                # Decide cómo manejar este error. ¿Debería fallar toda la transacción?
-                                # Es un error grave porque la API facturó pero Odoo falló.
-                                # Guardar el error en la orden podría ser útil.
-                                order.sudo().write({'invoice_api_response': f"{order.invoice_api_response}\nError Odoo Post-API: {e_invoice}"})
-                                # Podrías lanzar un UserError aquí para notificar al usuario,
-                                # aunque la API ya tuvo éxito. Es una situación delicada.
-                                # raise UserError(_("La factura se generó en la API externa, pero hubo un error al registrarla en Odoo: %s") % e_invoice)
+                                raise UserError(error_msg)
 
-                        else:
-                            # _prepare_account_move_data no retornó valores (quizás por 'to_invoice' False u otro chequeo)
-                            print(f"No se generaron datos de factura Odoo para la orden {order.id} (según _prepare_account_move_data).")
-
-
-                        # --- FIN CORRECCIÓN ---
-                        links = api_result_data['representacionGrafica']
-                        # Guardar URLs, etc.
-                        order.write({
-                            'invoice_pdf_url': links.get('pdf'),
-                            'invoice_xml_url': links.get('xml'),
-                            'invoice_sin_url': links.get('sin'),
-                            'invoice_rollo_url': links.get('rollo'),
-                            # 'cuf_field': api_result_data.get('cuf'), # Si tienes campo para CUF
-                        })
-                        print(f"Datos de factura guardados en Odoo.")
                     else:
                         # Respuesta 'data' OK pero incompleta (ej: sin representacionGrafica)
                         error_detail = "Respuesta API OK pero incompleta (sin datos gráficos)."
@@ -447,6 +446,38 @@ class PosOrder(models.Model):
             'invoice_rollo_url': order.invoice_rollo_url,
             # Otros campos que necesites
         }
+    
+# Añade este nuevo método a tu clase PosOrder
+
+    def _update_invoice_with_api_data(self, api_result_data):
+        """
+        Actualiza la factura vinculada con datos de la API de facturación
+        sin modificar otros campos contables importantes.
+        
+        :param api_result_data: Diccionario con los datos de la respuesta de API
+        :return: Boolean indicando éxito
+        """
+        self.ensure_one()
+        if not self.account_move:
+            return False
+            
+        representacion_grafica = api_result_data.get('representacionGrafica', {})
+        
+        # Preparar solo los valores de la API para actualizar la factura
+        api_update_vals = {
+            'cuf': api_result_data.get('cuf'),
+            'api_invoice_id': api_result_data.get('_id'),
+            'pdf_url': representacion_grafica.get('pdf'),
+            'sin_url': representacion_grafica.get('sin'),
+            'rollo_url': representacion_grafica.get('rollo'),
+            'xml_url': representacion_grafica.get('xml'),
+            # Agregar otros campos importantes de la API
+        }
+        
+        # Actualizar la factura existente
+        self.account_move.sudo().write(api_update_vals)
+        _logger.info(f"Factura ID: {self.account_move.id} actualizada con datos API para orden POS {self.name}")
+        return True
     
     def _prepare_account_move_data(self, response_data):
         orden_pos_id = self.id  # Guardamos el ID en una variable si lo necesitas más adelante

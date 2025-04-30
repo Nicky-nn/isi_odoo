@@ -98,6 +98,25 @@ python3 odoo-bin shell --config /ruta/a/tu/archivo.conf
    ```
    zip -r ../isiodoo.zip . -x ".git/*" ".gitignore" "*.md" ".DS_Store" "*.pyc" "*/__pycache__/*" "*/.DS_Store" "*/.idea/*" "*/.vscode/*" "*/tests/*" "*/.pytest_cache/*" "*/.coverage" "*/htmlcov/*" "*/doc/*" "*/docs/*" "*/README.md" "*/CHANGELOG.md" "*/requirements.txt" "*/requirements-dev.txt"  
    ```
+
+### 12. Subir el archivo comprimido, damos permisos y reiniciamos el servidor
+   ```
+   chown -R root:root /home/**/odooContainer/odoo-17/addons # Especificar la ruta de tu contenedor
+   chmod -R 777 /home/**/odooContainer/odoo-17/addons # Especificar la ruta de tu contenedor
+   ```
+
+### 13. Descomprimir el archivo
+   ```
+   mkdir isiodoo              # Crear carpeta de destino
+   unzip isiodoo.zip -d isiodoo  # Extraer el contenido dentro de la carpeta
+   ```
+
+### 14. Reinciciar el servidor docker
+   ```
+   docker restart odoo
+   ```
+
+   - Sube el archivo comprimido a la carpeta de addons de Odoo.
 > [!TIP]
 > La compresión es dentro de la carpeta addons/isiodoo, si se hacce desde afuera modificar la ruta.
 

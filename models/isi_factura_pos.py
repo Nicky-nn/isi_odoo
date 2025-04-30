@@ -174,18 +174,36 @@ class PosOrder(models.Model):
 
             # Detalles de los productos
             detalle_factura = []
+
             for line in order.lines:
-                if not line.product_id: continue
-                try: unidad_medida_api_val = int(getattr(line.product_id.uom_id, 'unidad_medida_sin', 1))
-                except (ValueError, TypeError): unidad_medida_api_val = 1
-                monto_descuento_linea = (line.price_unit * line.qty) * (line.discount / 100)
+                if not line.product_id:
+                    continue
+
+                producto = line.product_id
+                unidad_medida = getattr(producto.uom_id, 'unidad_medida_sin', 1)
+                try:
+                    unidad_medida_api_val = int(unidad_medida)
+                except (ValueError, TypeError):
+                    unidad_medida_api_val = 1
+
+                codigo_sin = "codigoProductoSin esta mal"
+                if producto.codigo_producto_homologado:
+                    partes = producto.codigo_producto_homologado.split(' - ')
+                    if len(partes) > 1:
+                        codigo_sin = partes[1]
+
+                monto_descuento = round((line.price_unit * line.qty) * (line.discount / 100), 2)
+
                 detalle_factura.append({
-                    "codigoProductoSin": getattr(line.product_id, 'codigo_producto_sin', '83131'),
-                    "codigoProducto": line.product_id.default_code or f"PROD-{line.product_id.id}",
-                    "descripcion": line.product_id.name or "N/A",
-                    "cantidad": line.qty, "unidadMedida": unidad_medida_api_val,
-                    "precioUnitario": line.price_unit, "montoDescuento": round(monto_descuento_linea, 2),
+                    "codigoProductoSin": codigo_sin,
+                    "codigoProducto": producto.default_code or f"PROD-{producto.id}",
+                    "descripcion": producto.name or "N/A",
+                    "cantidad": line.qty,
+                    "unidadMedida": unidad_medida_api_val,
+                    "precioUnitario": line.price_unit,
+                    "montoDescuento": monto_descuento,
                 })
+
             # print(" Detalle:", detalle_factura) # Descomentar si es necesario
 
             # Método de pago y número de tarjeta

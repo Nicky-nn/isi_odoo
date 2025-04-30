@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
+import base64
 import random
 import requests
 import json
 import logging
 
 from odoo import models, fields, api, _
+from odoo import http
 from odoo.exceptions import UserError # Importante para notificar errores al frontend
+from odoo.http import request
 
 _logger = logging.getLogger(__name__)
 
@@ -293,7 +296,51 @@ class PosOrder(models.Model):
                     api_result_data = api_response_json['data']['facturaCompraVentaCreate']
                     if api_result_data and api_result_data.get('representacionGrafica'):
                         # ÉXITO REAL Y COMPLETO
-                        print(f"¡FACTURA GENERADA EXITOSAMENTE!")
+                        print(f"¡FACTURA GENERADA EXITOSAMENTE POR API!")
+
+                        # --- CORRECCIÓN AQUÍ ---
+                        # 1. Llama al método SOBRE 'order', no 'self'
+                        # 2. Captura los valores retornados
+                        print(f"Llamando a _prepare_account_move_data para la orden POS ID: {order.id}") # Log antes de llamar
+                        move_vals = order._prepare_account_move_data(api_response_json) # <<< CORREGIDO
+
+                        # 3. Verifica si se prepararon datos y crea la factura Odoo
+                        if move_vals:
+                            try:
+                                # Intenta crear la factura. Puede requerir sudo() si el usuario del POS
+                                # no tiene permisos directos para crear asientos contables.
+                                # Es buena práctica usar with_context para el tipo por defecto.
+                                invoice = self.env['account.move'].with_context(default_move_type='out_invoice').sudo().create(move_vals)
+                                print(f"Factura Odoo creada con ID: {invoice.id} ({invoice.name}) para la orden POS {order.id}")
+
+                                # 4. Opcional: Enlazar la factura creada a la orden POS
+                                #    Necesitas un campo Many2one 'account_move_id' (o similar) en 'pos.order'
+                                # order.sudo().write({'account_move_id': invoice.id})
+
+                                # 5. Opcional: Validar la factura si la creaste en 'draft'
+                                #    Si _prepare_account_move_data la configura como 'posted', esto no es necesario.
+                                # if invoice.state == 'draft':
+                                #    invoice.sudo().action_post()
+                                #    print(f"Factura Odoo ID: {invoice.id} publicada.")
+
+                            except Exception as e_invoice:
+                                error_msg = f"Error al crear/procesar la factura Odoo para la orden {order.name} después de la API exitosa: {e_invoice}"
+                                print(f"ERROR: {error_msg}")
+                                _logger.error(error_msg)
+                                # Decide cómo manejar este error. ¿Debería fallar toda la transacción?
+                                # Es un error grave porque la API facturó pero Odoo falló.
+                                # Guardar el error en la orden podría ser útil.
+                                order.sudo().write({'invoice_api_response': f"{order.invoice_api_response}\nError Odoo Post-API: {e_invoice}"})
+                                # Podrías lanzar un UserError aquí para notificar al usuario,
+                                # aunque la API ya tuvo éxito. Es una situación delicada.
+                                # raise UserError(_("La factura se generó en la API externa, pero hubo un error al registrarla en Odoo: %s") % e_invoice)
+
+                        else:
+                            # _prepare_account_move_data no retornó valores (quizás por 'to_invoice' False u otro chequeo)
+                            print(f"No se generaron datos de factura Odoo para la orden {order.id} (según _prepare_account_move_data).")
+
+
+                        # --- FIN CORRECCIÓN ---
                         links = api_result_data['representacionGrafica']
                         # Guardar URLs, etc.
                         order.write({
@@ -404,3 +451,128 @@ class PosOrder(models.Model):
             'invoice_rollo_url': order.invoice_rollo_url,
             # Otros campos que necesites
         }
+    
+    def _prepare_account_move_data(self, response_data):
+        orden_pos_id = self.id  # Guardamos el ID en una variable si lo necesitas más adelante
+        print(f"\n--- Preparando datos para account.move (Orden POS ID: {orden_pos_id}) ---")
+        # El resto de tu lógica permanece igual...
+        if not self.to_invoice:
+            print(f"La orden POS {self.id} no requiere factura (to_invoice=False). No se preparan datos de account.move.")
+            return {} # Devuelve un diccionario vacío si no hay nada que preparar
+
+        """Prepara los datos completos para crear o actualizar el account.move, incluyendo líneas de productos"""
+        result = response_data.get('data', {}).get('facturaCompraVentaCreate', {})
+        representacion_grafica = result.get('representacionGrafica', {})
+        # Asegúrate de que partner_id existe antes de intentar acceder a sus atributos
+        partner = self.partner_id
+        if not partner:
+             print(f"ADVERTENCIA: Orden POS {self.id} sin cliente definido. Usando valores genéricos para la factura.")
+             razon_social_cliente = "Sin Cliente"
+             cod_tipo_doc_cliente = 5 # Por ejemplo, CI para "Sin Nombre"
+             phone_cliente = ""
+             email_cliente = ""
+        else:
+             razon_social_cliente = partner.razon_social or partner.name or 'Sin Razón Social'
+             cod_tipo_doc_cliente = getattr(partner, 'codigo_tipo_documento_identidad', 5) # Usa getattr para seguridad
+             phone_cliente = partner.phone
+             email_cliente = partner.email
+
+        # Método de pago (considera si puede haber más de un pago)
+        codigo_metodo_pago_factura = '1' # Valor por defecto: Efectivo
+        numero_tarjeta_factura = False
+        if self.payment_ids:
+            # Usualmente se toma el primer método de pago para la factura SIN
+            primer_pago = self.payment_ids[0]
+            metodo_pago_obj = primer_pago.payment_method_id
+            codigo_metodo_pago_factura = getattr(metodo_pago_obj, 'metodo_pago_sin', '1')
+            # Asegúrate de que sea string para la comparación
+            if str(codigo_metodo_pago_factura) == '2' and self.temporary_card_number:
+                 numero_tarjeta_factura = self.temporary_card_number # Usa el número temporal guardado
+
+        # Preparar líneas de factura
+        invoice_lines = []
+        for line in self.lines:
+            # Es buena práctica verificar si hay producto en la línea
+            if not line.product_id:
+                _logger.warning(f"Línea de orden POS {self.id} sin producto. Omitiendo línea en factura.")
+                continue
+
+            invoice_line_vals = {
+                'product_id': line.product_id.id,
+                'name': line.product_id.name, # O podrías usar line.name si tiene una descripción específica
+                'quantity': line.qty,
+                'price_unit': line.price_unit,
+                'discount': line.discount,
+                'product_uom_id': line.product_id.uom_id.id,
+                # Asegúrate que tax_ids_after_fiscal_position exista o usa line.tax_ids
+                'tax_ids': [(6, 0, line.tax_ids_after_fiscal_position.ids if line.tax_ids_after_fiscal_position else line.tax_ids.ids)],
+                # 'display_type': 'product', # No siempre es necesario, Odoo lo infiere
+                # 'sequence': line.id, # Odoo asigna secuencia usualmente, pero puedes forzarla si es necesario
+                # Campos adicionales específicos del producto si los necesitas
+                 'pos_order_line_id': line.id, # Puedes añadir una referencia a la línea original del POS
+            }
+            invoice_lines.append((0, 0, invoice_line_vals))
+
+        # Validar si se generaron líneas de factura
+        if not invoice_lines:
+             _logger.error(f"No se generaron líneas de factura para la orden POS {self.id}. No se creará el asiento contable.")
+             # Podrías lanzar un error o retornar diccionario vacío dependiendo de tu flujo
+             # raise UserError(_("No se pudieron generar las líneas de detalle para la factura de la orden %s.") % self.name)
+             return {}
+
+
+        # Construcción del diccionario de valores para account.move
+        move_vals = {
+            'razon_social': razon_social_cliente,
+            'codigo_tipo_documento_identidad': cod_tipo_doc_cliente,
+            'phone': phone_cliente, # Campo estándar en Odoo es partner_id.phone
+            'email': email_cliente, # Campo estándar en Odoo es partner_id.email
+
+            # --- Datos de Pago ---
+            'codigo_metodo_pago': codigo_metodo_pago_factura,
+            'numero_tarjeta': numero_tarjeta_factura, # Solo si es tarjeta
+
+            # --- Datos de la Respuesta API ---
+            'cuf': result.get('cuf'),
+            'api_invoice_id': result.get('_id'), # El ID de la factura en el sistema externo
+            'api_invoice_state': result.get('state'), # El estado de la factura en el sistema externo
+            'pdf_url': representacion_grafica.get('pdf'),
+            'sin_url': representacion_grafica.get('sin'),
+            'rollo_url': representacion_grafica.get('rollo'),
+            'xml_url': representacion_grafica.get('xml'),
+        }
+
+        print(f"Valores preparados para account.move (Orden POS ID: {self.id}):")
+        # Cuidado al imprimir diccionarios grandes en producción
+        # print(json.dumps(move_vals, indent=2, default=str)) # default=str para manejar objetos no serializables
+
+        return move_vals # Devuelve el diccionario con los valores
+    
+class PosOrderController(http.Controller):
+    @http.route('/pos/web/download_rollo/<int:order_id>', type='http', auth='user')
+    def download_rollo(self, order_id, **kwargs):
+        """Controlador para descargar el PDF del rollo"""
+        try:
+            order = request.env['pos.order'].sudo().browse(order_id)
+            if not order or not order.rollo_pdf:
+                _logger.warning(f"PDF del rollo no encontrado para la orden: {order_id}")
+                return request.not_found()
+
+            if not order._check_pdf_content():
+                _logger.warning(f"El contenido del PDF no es válido para la orden: {order_id}")
+                return request.not_found()
+
+            pdf_data = base64.b64decode(order.rollo_pdf)
+            filename = f'rollo_{order.name}_{order.date_order.strftime("%Y%m%d")}.pdf'
+
+            headers = [
+                ('Content-Type', 'application/pdf'),
+                ('Content-Disposition', f'attachment; filename="{filename}"'),
+                ('Content-Length', len(pdf_data))
+            ]
+
+            return request.make_response(pdf_data, headers=headers)
+
+        except Exception as e:
+            _logger.error(f"Error al descargar el rollo para la orden {order_id}: {str(e)}", exc_info=True)
+            return request.not_found()

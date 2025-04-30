@@ -1,0 +1,29 @@
+.pos_order_error_modal {
+    border: 2px solid #e74c3c;
+    background-color: #fdecea;
+    padding: 16px;
+    border-radius: 8px;
+    max-width: 400px;
+    margin: 40px auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.pos_order_error_modal__header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.pos_order_error_modal__icon {
+    color: #e74c3c;
+    font-size: 28px;
+    margin-right: 12px;
+}
+.pos_order_error_modal__title {
+    color: #c0392b;
+    font-size: 1.25rem;
+    margin: 0;
+}
+.pos_order_error_modal__message {
+    color: #c0392b;
+    font-weight: bold;
+    margin: 0;
+}

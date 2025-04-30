@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+  <t t-name="pos_order_error_modal" owl="1">
+    <Dialog
+      title="props.title || '¡Ha ocurrido un error!'"
+      class="pos_order_error_modal"
+    >
+      <div class="pos_order_error_modal__header">
+        <!-- Icono de error -->
+        <i class="fa fa-exclamation-circle pos_order_error_modal__icon"></i>
+        <h4 class="pos_order_error_modal__title">¡Error!</h4>
+      </div>
+      <p class="pos_order_error_modal__message">
+        <t t-esc="props.errorMessage"/>
+      </p>
+    </Dialog>
+  </t>
+</templates>
+

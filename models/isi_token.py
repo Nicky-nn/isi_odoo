@@ -19,7 +19,6 @@ class WhatsappApiController(http.Controller):
                 LIMIT 1
             """, (current_user_id,))
             token_result = request.env.cr.fetchone()
-            print(f"Resultado del token: {token_result}")
             token = token_result[0] if token_result else None
 
             if not token:

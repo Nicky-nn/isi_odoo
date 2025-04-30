@@ -1,17 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
-    <t t-name="pos_order_success_modal" owl="1">
-        <Dialog title="props.title || '¡Orden Confirmada!'">
-            <p>
-                La orden <t t-esc="props.orderName"/> ha sido registrada con éxito.
-                <t t-if="props.isInvoice">
-                    <br/>La factura será generada.
+    <t t-name="point_of_sale.SuccessModal">
+        <Dialog title="state.title" contentClass="'success-modal'">
+            <div class="p-4">
+                <div class="mb-4">
+                    <i class="fa fa-check-circle text-success fa-3x mb-2 d-block text-center"/>
+                    <h3 class="text-center" t-esc="state.message"/>
+                    <p class="text-center">
+                        <t t-if="state.orderName">Orden: <span t-esc="state.orderName"/></t>
+                    </p>
+                </div>
+                
+                <t t-if="hasUrls">
+                    <div class="d-flex justify-content-center flex-wrap gap-2">
+                        <t t-if="pdfUrl">
+                            <button class="btn btn-primary" t-on-click="() => this.openUrl(pdfUrl)">
+                                <i class="fa fa-file-pdf-o me-1"/> Ver PDF
+                            </button>
+                        </t>
+                        
+                        <t t-if="xmlUrl">
+                            <button class="btn btn-info" t-on-click="() => this.openUrl(xmlUrl)">
+                                <i class="fa fa-file-code-o me-1"/> XML
+                            </button>
+                        </t>
+                        
+                        <t t-if="sinUrl">
+                            <button class="btn btn-secondary" t-on-click="() => this.openUrl(sinUrl)">
+                                <i class="fa fa-barcode me-1"/> SIAT
+                            </button>
+                        </t>
+                        
+                        <t t-if="rolloUrl">
+                            <button class="btn btn-success" t-on-click="() => this.openUrl(rolloUrl)">
+                                <i class="fa fa-print me-1"/> Rollo
+                            </button>
+                        </t>
+                    </div>
                 </t>
-            </p>
-            <div class="text-center mt-4">
-                <button class="btn btn-primary" t-on-click="confirm">
-                    Aceptar
-                </button>
+                
+                <div class="text-center mt-4">
+                    <button class="btn btn-secondary" t-on-click="props.close">
+                        Cerrar
+                    </button>
+                </div>
             </div>
         </Dialog>
     </t>

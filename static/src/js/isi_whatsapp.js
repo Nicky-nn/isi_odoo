@@ -72,6 +72,7 @@ patch(ReceiptScreen.prototype, {
             const order = this.pos.get_order();
             const partner = order ? order.get_partner() : null;
             const accountMove = await this.getAccountMove(order.server_id);
+            console.log("Account Move:", accountMove);
 
             const payload = {
                 telefono: this.state.phoneNumber,

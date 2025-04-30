@@ -12,12 +12,12 @@
     'website': "https://integrate.com.bo/",
 
     'category': 'Point of Sale',
-    'version': '1.1.0',
+    'version': '1.5.0',
 
     'depends': ['base', 'product', 'account', 'account_payment', 'sale', 'point_of_sale', 'hr'],
 
     'data': [
-        #'security/ir.model.access.csv',
+        # 'security/ir.model.access.csv',
         'views/isi_homologado.xml',
         'views/templates.xml',
         'security/ir.model.access.csv',

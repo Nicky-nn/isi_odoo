@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="point_of_sale.CashierName" t-inherit-mode="extension">
+        <xpath expr="//div[@t-att-class='cssClass']" position="before">
+            <!-- Solo si está activado en config -->
+            <t t-if="pos.config.allow_siat_customer">
+                <div class="isi-badges-container">
+                    <!-- <div class="isi-connection-badge">
+                        <img t-att-src="'/isiodoo/static/description/icon.png'" alt="ISI Logo" class="isi-logo"/>
+                        <span>ISI-ODOO</span>
+                    </div> -->
+                    <div class="isi-connection-badge">
+                        <span>M.: BOB</span>
+                    </div>
+                    <div class="isi-connection-badge">
+                        <span>Suc: <t t-esc="pos.config.sucursal_codigo_siat"/> | PDV: <t t-esc="pos.config.punto_venta_codigo_siat"/></span>
+                    </div>
+                </div>
+            </t>
+        </xpath>
+    </t>
+</templates>

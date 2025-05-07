@@ -1,0 +1,22 @@
+/* Badge amarillo brillante con esquinas redondeadas */
+.isi-connection-badge {
+   /* un CELESTE suave */
+    background-color: #e0f7fa;
+    color: #000;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+  }
+  
+  /* Ajuste de tamaño del logo dentro del badge */
+  .isi-connection-badge .isi-logo {
+    height: 1rem;
+    width: auto;
+    margin-right: 0.25rem;
+  }
+  
+  

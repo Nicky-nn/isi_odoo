@@ -12,67 +12,7 @@ La vista del formulario se divide en dos columnas:
 
 Esta personalización permite a los usuarios administrar configuraciones de ISI-ODOO directamente desde la vista del formulario de empleado en Odoo.
 -->
-    <record id="view_employee_form_inherit_isi_pass" model="ir.ui.view">
-        <field name="name">hr.employee.form.inherit.isi.pass</field>
-        <field name="model">hr.employee</field>
-        <field name="inherit_id" ref="hr.view_employee_form"/>
-        <field name="arch" type="xml">
-            <notebook position="inside">
-                <page string="Configuraciones ISI-ODOO">
-                    <field name="isi_pass_config_ids" context="{'default_employee_id': id}">
-                        <tree>
-                            <field name="name"/>
-                            <field name="environment"/>
-                            <field name="api_url"/>
-                            <field name="shop_url"/>
-                            <field name="email"/>
-                        </tree>
-                        <form>
-                            <sheet>
-                                <group>
-                                    <!-- Primera columna -->
-                                    <group>
-                                        <field name="name"/>
-                                        <field name="environment" widget="radio"/>
-                                        <field name="api_url"/>
-                                        <field name="shop_url"/>
-                                        <field name="email"/>
-                                        <field name="password" password="True"/>
-                                        <field name="employee_id" invisible="1"/>
-                                        <button name="login" string="Iniciar Sesión" type="object" class="oe_highlight"/>
-                                    </group>
+    
 
-                                    <!-- Segunda columna -->
-                                    <group>
-                                        <field name="token_display" readonly="1"/>
-                                        <field name="refresh_token_display" readonly="1"/>
-                                        <field name="nombres" readonly="1"/>
-                                        <field name="apellidos" readonly="1"/>
-                                        <field name="avatar" readonly="1"/>
-                                        <field name="razon_social" readonly="1"/>
-                                        <field name="codigo_modalidad" readonly="1"/>
-                                        <field name="codigo_ambiente" readonly="1"/>
-                                        <field name="fecha_validez_token" readonly="1"/>
-                                        <field name="tienda" widget="badge" readonly="1"/>
-                                        <field name="email_empresa" readonly="1"/>
-                                        <field name="email_fake" readonly="1"/>
-                                        <field name="sucursal_codigo" widget="badge" readonly="1"/>
-                                        <field name="sucursal_direccion" readonly="1"/>
-                                        <field name="sucursal_telefono" readonly="1"/>
-                                        <field name="departamento_codigo" readonly="1"/>
-                                        <field name="departamento_codigo_pais" readonly="1"/>
-                                        <field name="departamento_sigla" readonly="1"/>
-                                        <field name="departamento_nombre" readonly="1"/>
-                                        <field name="punto_venta_codigo" readonly="1"/>
-                                        <field name="punto_venta_nombre" readonly="1"/>
-                                        <field name="punto_venta_descripcion" readonly="1"/>
-                                    </group>
-                                </group>
-                            </sheet>
-                        </form>
-                    </field>
-                </page>
-            </notebook>
-        </field>
-    </record>
+    
 </odoo>

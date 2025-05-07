@@ -27,6 +27,22 @@ class PosOrder(models.Model):
     invoice_sin_url = fields.Char(string="URL SIN Factura", readonly=True, copy=False)
     invoice_rollo_url = fields.Char(string="URL Rollo Factura", readonly=True, copy=False)
 
+
+    sucursal_codigo     = fields.Char(string="Sucursal SIAT", compute='_compute_siat_codes')
+    punto_venta_codigo  = fields.Char(string="Punto Venta SIAT", compute='_compute_siat_codes')
+
+    @api.depends('create_uid')
+    def _compute_siat_codes(self):
+        for order in self:
+            # Trae la primera configuración del usuario
+            configs = order.create_uid.isi_pass_config_id
+            if configs:
+                cfg = configs[0]
+                order.sucursal_codigo    = cfg.sucursal_codigo or ''
+                order.punto_venta_codigo = cfg.punto_venta_codigo or ''
+            else:
+                order.sucursal_codigo = order.punto_venta_codigo = ''
+
     # --- _order_fields (Sin cambios) ---
     @api.model
     def _order_fields(self, ui_order):

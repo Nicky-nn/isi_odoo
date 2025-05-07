@@ -11,8 +11,8 @@
     'author': "INTEGRATE Soluciones Informáticas",
     'website': "https://integrate.com.bo/",
 
-    'category': 'Point of Sale',
-    'version': '1.5.0',
+    'category': 'Sales/Point of Sale',
+    'version': '1.6.1',
 
     'depends': ['base', 'product', 'account', 'account_payment', 'sale', 'point_of_sale', 'hr', 'sale_management'],
 

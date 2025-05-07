@@ -1,34 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
     <!--
-
-    Este archivo XML define las vistas y acciones para la configuración de ISI-ODOO en Odoo.
+    Este archivo XML define las vistas y acciones para la configuración de ISI-ODOO en Odoo 17+.
 
     1. Vista de formulario de usuario heredado:
         - ID: view_users_form_inherit_isi_pass
-        - Modelo: res.usuarios
+        - Modelo: res.users
         - Hereda: base.view_users_form
-        - Agrega una nueva página "Configuración Token IsiPass" en el formulario de usuario con una vista de árbol de isi_pass_config_id.
+        - Agrega una nueva página "Configuración Token IsiPass" en el formulario de usuario.
 
     2. Vista del formulario de configuración de ISI-ODOO:
         - ID: isi_pass_config_form_view
         - Modelo: isi.pass.config
-        - Define una vista de formulario para la configuración de ISI-ODOO con campos para credenciales de usuario, configuraciones de entorno y campos de solo lectura para token e información de usuario.
+        - Define una vista de formulario para la configuración de ISI-ODOO con campos para credenciales de usuario, 
+          configuraciones de entorno y campos de solo lectura para token e información de usuario.
 
     3. Acción de configuración de ISI-ODOO:
         - ID: action_isi_pass_config
         - Modelo: isi.pass.config
-        - Abre la Configuración ISI-ODOO en modos de vista de árbol y formulario.
+        - Abre la Configuración ISI-ODOO en modo de vista kanban y formulario.
 
     4. Menú ISI-ODOO:
         - Menú raíz: ISI-ODOO
         - ID: menu_isi_pass_root
-        - Icono: isi_pass,static/description/icon.png
+        - Icono: isiodoo,static/description/icon.png
         - Submenú: Configuración ISI-ODOO
         - ID: menu_isi_pass_config
         - Padre: menu_isi_pass_root
         - Acción: action_isi_pass_config
     -->
+    
     <!-- Vista heredada para usuarios -->
     <record id="view_users_form_inherit_isi_pass" model="ir.ui.view">
         <field name="name">res.users.form.inherit.isi.pass</field>
@@ -37,17 +38,44 @@
         <field name="arch" type="xml">
             <notebook position="inside">
                 <page string="Configuración Token IsiPass">
-                    <field name="isi_pass_config_id" context="{'default_user_id': active_id}">
-                        <tree>
-                            <field name="name"/>
-                            <field name="environment"/>
-                            <field name="api_url"/>
-                            <field name="shop_url"/>
-                            <field name="email"/>
-                        </tree>
-                    </field>
+                    <field name="isi_pass_config_id" context="{'default_user_id': active_id}"/>
                 </page>
             </notebook>
+        </field>
+    </record>
+
+    <!-- Vista kanban para configuración ISI-ODOO -->
+    <record id="isi_pass_config_kanban_view" model="ir.ui.view">
+        <field name="name">ISI-ODOO Config Kanban</field>
+        <field name="model">isi.pass.config</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="name"/>
+                <field name="environment"/>
+                <field name="api_url"/>
+                <field name="shop_url"/>
+                <field name="email"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click o_kanban_record_has_image_fill">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title"><field name="name"/></strong>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_body">
+                                <div><span>Entorno: </span><field name="environment"/></div>
+                                <div><span>Email: </span><field name="email"/></div>
+                            </div>
+                            <div class="o_kanban_record_bottom">
+                                <div class="oe_kanban_bottom_right">
+                                    <span class="badge rounded-pill text-bg-info"><field name="shop_url"/></span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
         </field>
     </record>
 
@@ -56,7 +84,7 @@
         <field name="name">ISI-ODOO Config Form</field>
         <field name="model">isi.pass.config</field>
         <field name="arch" type="xml">
-            <form string="ISI-ODOO Configuration">
+            <form>
                 <sheet>
                     <div class="oe_title">
                         <label for="name" class="oe_edit_only"/>
@@ -69,11 +97,10 @@
                             <field name="user_id" invisible="1"/>
                             <field name="environment" widget="radio"/>
                             <field name="api_url"/>
-                            <!-- Ahora editable -->
                             <field name="shop_url"/>
                             <field name="email"/>
                             <field name="password" password="True"/>
-                            <button name="login" string="Iniciar Sesión" type="object" class="oe_highlight"/>
+                            <button name="login" string="Iniciar Sesión" type="object" class="btn-primary"/>
                         </group>
                         <group>
                             <field name="token_display" readonly="1"/>
@@ -105,14 +132,51 @@
         </field>
     </record>
 
+    <!-- Vista de búsqueda para la configuración ISI-ODOO -->
+    <record id="isi_pass_config_search_view" model="ir.ui.view">
+        <field name="name">ISI-ODOO Config Search</field>
+        <field name="model">isi.pass.config</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="email"/>
+                <field name="shop_url"/>
+                <filter string="Producción" name="environment_prod" domain="[('environment', '=', 'produccion')]"/>
+                <filter string="Pruebas" name="environment_test" domain="[('environment', '=', 'pruebas')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Entorno" name="groupby_environment" context="{'group_by': 'environment'}"/>
+                    <filter string="Usuario" name="groupby_user" context="{'group_by': 'user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Acción para la configuración ISI-ODOO -->
+    <record id="action_isi_pass_config" model="ir.actions.act_window">
+        <field name="name">Configuración ISI-ODOO</field>
+        <field name="res_model">isi.pass.config</field>
+        <field name="view_mode">kanban,form</field>
+        <field name="search_view_id" ref="isi_pass_config_search_view"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crea tu primera configuración de ISI-ODOO
+            </p>
+            <p>
+                Define las credenciales y configuraciones para conectarte con el servicio ISI-ODOO.
+            </p>
+        </field>
+    </record>
+
     <!-- Acción para mostrar notificación de instalación correcta -->
     <record id="action_isi_pass_install_ok" model="ir.actions.client">
         <field name="name">Instalación Correcta</field>
         <field name="tag">display_notification</field>
-        <field name="params">{'title':'ISI-ODOO','message':'La instalación de ISI-ODOO se realizó correctamente.','sticky':False}</field>
+        <field name="params">{'type': 'success', 'title': 'ISI-ODOO', 'message': 'La instalación de ISI-ODOO se realizó correctamente.', 'sticky': false}</field>
     </record>
 
+    <!-- Menús -->
     <menuitem id="menu_isi_pass_root" name="ISI-ODOO" web_icon="isiodoo,static/description/icon.png" sequence="1"/>
-    <menuitem id="menu_isi_pass_install_ok" name="Instalación Correcta" parent="menu_isi_pass_root" action="action_isi_pass_install_ok"/>
+    <menuitem id="menu_isi_pass_config" name="Configuraciones" parent="menu_isi_pass_root" action="action_isi_pass_config" sequence="10"/>
+    <menuitem id="menu_isi_pass_install_ok" name="Instalación Correcta" parent="menu_isi_pass_root" action="action_isi_pass_install_ok" sequence="20"/>
 
 </odoo>

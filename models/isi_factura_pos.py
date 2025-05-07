@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import base64
 import random
+import re
 import requests
 import json
 import logging
@@ -73,9 +74,14 @@ class PosOrder(models.Model):
     # --- Método _process_order Modificado ---
     @api.model
     def _process_order(self, order_data, draft, existing_order):
-        # 1. Procesamiento original para crear/actualizar la orden
+        # 1) Ejecuta la lógica estándar y obtenemos el ID
         order_id = super(PosOrder, self)._process_order(order_data, draft, existing_order)
         order = self.browse(order_id)
+
+        # 2) Si SIAT está DESACTIVADO en la config, salimos YA
+        if not order.config_id.allow_siat_customer:
+            return order_id
+        
         if not order:
             _logger.error(f"_process_order: No se pudo encontrar la orden con ID {order_id} después de super()._process_order.")
             raise UserError(_("No se pudo procesar la orden correctamente (ID no encontrado)."))
@@ -100,6 +106,7 @@ class PosOrder(models.Model):
             print(f"  {i}. {line.product_id.name}")
             print(f"     Cantidad: {line.qty}")
             print(f"     Precio unitario: {line.price_unit}")
+            print(f"     Unidad de medida: {int(re.match(r'\d+', line.product_id.codigo_unidad_medida).group()) if line.product_id.codigo_unidad_medida and re.match(r'\d+', line.product_id.codigo_unidad_medida) else 1 }")
             if line.discount:
                 descuento_monto = (line.price_unit * line.qty) * (line.discount / 100)
                 print(f"     Descuento: {descuento_monto:.2f}")
@@ -180,6 +187,7 @@ class PosOrder(models.Model):
                     continue
 
                 producto = line.product_id
+                print(f"Producto JSON: {producto}")
                 unidad_medida = getattr(producto.uom_id, 'unidad_medida_sin', 1)
                 try:
                     unidad_medida_api_val = int(unidad_medida)
@@ -199,7 +207,7 @@ class PosOrder(models.Model):
                     "codigoProducto": producto.default_code or f"PROD-{producto.id}",
                     "descripcion": producto.name or "N/A",
                     "cantidad": line.qty,
-                    "unidadMedida": unidad_medida_api_val,
+                    "unidadMedida": int(re.match(r'\d+', line.product_id.codigo_unidad_medida).group()) if line.product_id.codigo_unidad_medida and re.match(r'\d+', line.product_id.codigo_unidad_medida) else 1,
                     "precioUnitario": line.price_unit,
                     "montoDescuento": monto_descuento,
                 })
@@ -475,6 +483,10 @@ class PosOrder(models.Model):
         :param api_result_data: Diccionario con los datos de la respuesta de API
         :return: Boolean indicando éxito
         """
+
+        if not self.config_id.allow_siat_customer:
+            return False  # o bien no hacer nada
+
         self.ensure_one()
         if not self.account_move:
             return False
@@ -498,6 +510,10 @@ class PosOrder(models.Model):
         return True
     
     def _prepare_account_move_data(self, response_data):
+        # Si SIAT NO está activo, devolvemos el dict original de Odoo:
+        if not self.config_id.allow_siat_customer:
+            return super(PosOrder, self)._prepare_account_move_data(response_data)
+
         orden_pos_id = self.id  # Guardamos el ID en una variable si lo necesitas más adelante
         print(f"\n--- Preparando datos para account.move (Orden POS ID: {orden_pos_id}) ---")
         # El resto de tu lógica permanece igual...
